@@ -19,6 +19,7 @@ const MAP_VIEWS = [
 
 type MapView = (typeof MAP_VIEWS)[number]["v"];
 type GoogleMapsAuthWindow = Window & { gm_authFailure?: () => void };
+const GOOGLE_MAPS_ENABLED = import.meta.env.VITE_GOOGLE_MAPS_ENABLED === "true";
 
 function markerColor(score: number) {
   if (score > 80) return "#dc2626";
@@ -71,6 +72,7 @@ function GhostMap() {
 
   useEffect(() => {
     if (!mapRef.current) return;
+    if (!GOOGLE_MAPS_ENABLED) return;
 
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
@@ -99,7 +101,7 @@ function GhostMap() {
         const nextMap = new Map(mapRef.current, {
           center: { lat: 22.9734, lng: 78.6569 },
           zoom: 5,
-          mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
+          mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || undefined,
           disableDefaultUI: true,
           zoomControl: true,
           fullscreenControl: true,
@@ -274,6 +276,33 @@ function GhostMap() {
           </div>
 
           <div ref={mapRef} className="absolute inset-0" />
+
+          {!map && !GOOGLE_MAPS_ENABLED && (
+            <div className="absolute inset-0 overflow-hidden bg-[radial-gradient(circle_at_30%_35%,rgba(255,128,0,0.18),transparent_22%),radial-gradient(circle_at_72%_52%,rgba(34,197,94,0.16),transparent_18%),linear-gradient(135deg,#111827_0%,#0f172a_48%,#182033_100%)]">
+              <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:48px_48px]" />
+              <div className="absolute left-[16%] top-[18%] h-[62%] w-[54%] rounded-[55%_45%_62%_38%] border border-white/15 bg-emerald-400/10 shadow-[inset_0_0_60px_rgba(16,185,129,0.12)]" />
+              <div className="absolute left-[34%] top-[22%] h-[40%] w-[34%] rounded-[45%_55%_42%_58%] border border-white/10 bg-saffron/10" />
+
+              {filtered.map((project) => {
+                if (project.lat == null || project.lng == null) return null;
+                const left = Math.min(86, Math.max(12, ((project.lng - 68) / 30) * 74 + 12));
+                const top = Math.min(82, Math.max(14, ((36 - project.lat) / 28) * 68 + 14));
+                const score = project.ghost_score ?? 0;
+                const tone = score > 80 ? "bg-danger" : score > 55 ? "bg-saffron" : "bg-success";
+
+                return (
+                  <button
+                    key={project.id}
+                    onClick={() => setSelected(project)}
+                    className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-lg ${tone} ${selected?.id === project.id ? "ring-4 ring-white/40" : ""}`}
+                    style={{ left: `${left}%`, top: `${top}%` }}
+                    title={project.name}
+                    aria-label={project.name}
+                  />
+                );
+              })}
+            </div>
+          )}
 
           {mapError && (
             <div className="absolute left-4 bottom-4 z-10 max-w-md rounded-lg border border-danger/30 bg-card p-4 text-sm shadow-elevated">
