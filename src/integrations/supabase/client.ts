@@ -6,19 +6,6 @@ function createSupabaseClient() {
   const url = "https://qzefyiamfhcvwyhrhums.supabase.co";
   const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6ZWZ5aWFtZmhjdnd5aHJodW1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODY3MzIsImV4cCI6MjA5MzA2MjczMn0.y4C44BreHV8GINtzARrJgnbciNgwOyaMfFf5OJjQBzo";
 
-  if (!url || !key) {
-    console.error("[Supabase Debug] URL found:", !!url);
-    console.error("[Supabase Debug] Key found:", !!key);
-    console.error("[Supabase Debug] Available Process Env Keys:", Object.keys(process.env).filter(k => k.includes("SUPABASE") || k.includes("VITE")));
-    
-    const missing = [
-      ...(!url ? ['SUPABASE_URL'] : []),
-      ...(!key ? ['SUPABASE_PUBLISHABLE_KEY'] : []),
-    ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(', ')}. Connect Supabase in Lovable Cloud.`;
-    throw new Error(message);
-  }
-
   return createClient<Database>(url, key, {
     auth: {
       storage: typeof window !== 'undefined' ? localStorage : undefined,
@@ -38,4 +25,3 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
     return Reflect.get(_supabase, prop, receiver);
   },
 });
-
