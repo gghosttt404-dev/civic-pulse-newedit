@@ -2,8 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
 import { formatINR, ghostScoreColor } from "@/lib/format";
+import { projectsOrFallback, type Project } from "@/lib/sample-projects";
 import { SeverityBadge } from "@/components/SeverityBadge";
 import { Search, X } from "lucide-react";
 
@@ -17,7 +17,6 @@ const MAP_VIEWS = [
   { v: "success", l: "Success Stories" },
 ] as const;
 
-type Project = Database["public"]["Tables"]["projects"]["Row"];
 type MapView = (typeof MAP_VIEWS)[number]["v"];
 
 function GhostMap() {
@@ -34,14 +33,16 @@ function GhostMap() {
     supabase
       .from("projects")
       .select("*")
-      .then(({ data }) => setProjects(data || []));
+      .then(({ data }) => setProjects(projectsOrFallback(data)))
+      .catch(() => setProjects(projectsOrFallback(null)));
     const ch = supabase
       .channel("projects-rt")
       .on("postgres_changes", { event: "*", schema: "public", table: "projects" }, () =>
         supabase
           .from("projects")
           .select("*")
-          .then(({ data }) => setProjects(data || [])),
+          .then(({ data }) => setProjects(projectsOrFallback(data)))
+          .catch(() => setProjects(projectsOrFallback(null))),
       )
       .subscribe();
     return () => {
