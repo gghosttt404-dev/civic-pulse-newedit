@@ -18,52 +18,33 @@ async function getServerEntry(): Promise<ServerEntry> {
   return serverEntryPromise;
 }
 
-function brandedErrorResponse(): Response {
-  return new Response(renderErrorPage(), {
+function brandedErrorResponse(error) {
+  const message = error?.message || "Unknown Server Error";
+  const stack = error?.stack || "No stack trace available";
+
+  return new Response(`
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <title>Server Error</title>
+        <style>
+          body { font-family: monospace; padding: 2rem; background: #1a1a1a; color: #ff4d4d; }
+          pre { background: #000; padding: 1rem; border-radius: 4px; overflow: auto; }
+        </style>
+      </head>
+      <body>
+        <h1>Server Error</h1>
+        <p><strong>Message:</strong> ${message}</p>
+        <pre>${stack}</pre>
+        <hr/>
+        <button onclick="location.reload()">Try Again</button>
+      </body>
+    </html>
+  `, {
     status: 500,
     headers: { "content-type": "text/html; charset=utf-8" },
   });
-}
-
-function isCatastrophicSsrErrorBody(body: string, responseStatus: number): boolean {
-  let payload: unknown;
-  try {
-    payload = JSON.parse(body);
-  } catch {
-    return false;
-  }
-
-  if (!payload || Array.isArray(payload) || typeof payload !== "object") {
-    return false;
-  }
-
-  const fields = payload as Record<string, unknown>;
-  const expectedKeys = new Set(["message", "status", "unhandled"]);
-  if (!Object.keys(fields).every((key) => expectedKeys.has(key))) {
-    return false;
-  }
-
-  return (
-    fields.unhandled === true &&
-    fields.message === "HTTPError" &&
-    (fields.status === undefined || fields.status === responseStatus)
-  );
-}
-
-// h3 swallows in-handler throws into a normal 500 Response with body
-// {"unhandled":true,"message":"HTTPError"} — try/catch alone never fires for those.
-async function normalizeCatastrophicSsrResponse(response: Response): Promise<Response> {
-  if (response.status < 500) return response;
-  const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) return response;
-
-  const body = await response.clone().text();
-  if (!isCatastrophicSsrErrorBody(body, response.status)) {
-    return response;
-  }
-
-  console.error(consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`));
-  return brandedErrorResponse();
 }
 
 export default {
@@ -71,10 +52,19 @@ export default {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
-    } catch (error) {
-      console.error(error);
-      return brandedErrorResponse();
+      
+      if (response.status >= 500) {
+        const contentType = response.headers.get("content-type") ?? "";
+        if (contentType.includes("application/json")) {
+           const body = await response.clone().text();
+           console.error("SSR Error Payload:", body);
+        }
+      }
+      
+      return response;
+    } catch (error: any) {
+      console.error("Fatal Fetch Error:", error);
+      return brandedErrorResponse(error);
     }
   },
 };
