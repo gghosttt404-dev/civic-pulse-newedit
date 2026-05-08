@@ -1,6 +1,11 @@
 import handler from '../dist/server/index.js';
 
 export default async function (req, res) {
+  // Global Force Fix: Ensure standard names are populated from VITE_ prefixes
+  process.env.SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  process.env.SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  process.env.GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || process.env.VITE_GOOGLE_API_KEY;
+
   try {
     // Convert Node.js request to Web Request
     const protocol = req.headers['x-forwarded-proto'] || 'http';
