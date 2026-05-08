@@ -1,10 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/AppShell";
-import { useState } from "react";
-import { GhostScoreGauge } from "@/components/GhostScoreGauge";
-import { SeverityBadge } from "@/components/SeverityBadge";
-import { Sparkles, FileText, Save, FileSearch, Satellite, Gauge, ListChecks, Bot } from "lucide-react";
-import { formatINR } from "@/lib/format";
+import { createFileRoute } from '@tanstack/react-router'
+import { analyzeClaim, type AnalysisResult } from "@/lib/gemini";
 
 export const Route = createFileRoute("/analyze")({ component: Analyze });
 
@@ -22,14 +17,29 @@ function Analyze() {
   const [district, setDistrict] = useState("");
   const [step, setStep] = useState(-1);
   const [done, setDone] = useState(false);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
 
   const run = async () => {
+    if (!text.trim()) return;
     setDone(false); setStep(0);
+    setResult(null);
+
+    // Run simulations for UI effect
     for (let i = 0; i < AGENTS.length; i++) {
       setStep(i);
-      await new Promise(r => setTimeout(r, AGENTS[i].ms));
+      await new Promise(r => setTimeout(r, AGENTS[i].ms / 2));
     }
-    setStep(AGENTS.length); setDone(true);
+
+    try {
+      const aiResult = await analyzeClaim(text);
+      setResult(aiResult);
+      setStep(AGENTS.length);
+      setDone(true);
+    } catch (error) {
+      console.error(error);
+      alert("AI analysis failed. Please check your API key.");
+      setStep(-1);
+    }
   };
 
   const score = 78;
@@ -77,24 +87,27 @@ function Analyze() {
           </div>
         )}
 
-        {done && (
-          <div className="bg-card border rounded-2xl p-6 shadow-elevated space-y-5">
+        {done && result && (
+          <div className="bg-card border rounded-2xl p-6 shadow-elevated space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-xl">Analysis Result</h2>
-              <SeverityBadge severity="HIGH" />
+              <SeverityBadge severity={result.severity} />
             </div>
             <div className="flex flex-wrap gap-2">
-              {["Project: Rural Road Phase II","Location: " + (district || "—") + ", " + state,"Amount: ₹2.45 Cr","Date: 2023","Agency: PWD"].map(c => <span key={c} className="text-xs bg-muted px-3 py-1.5 rounded-full">{c}</span>)}
+              {["Location: " + (district || "—") + ", " + state, "Source: Custom Input"].map(c => <span key={c} className="text-xs bg-muted px-3 py-1.5 rounded-full">{c}</span>)}
             </div>
             <div className="flex flex-col md:flex-row gap-6 items-center">
-              <GhostScoreGauge score={score} />
+              <GhostScoreGauge score={result.score} />
               <div className="flex-1 space-y-2">
-                {["No road surface detected in 2024 imagery","Same dirt path present in 2021 baseline","Construction equipment absent across 14 months","Local panchayat has no completion certificate"].map((e, i) =>
-                  <div key={i} className="text-sm border-l-4 border-danger bg-danger/5 px-3 py-1.5">⚠️ {e}</div>)}
+                {result.points.map((e, i) =>
+                  <div key={i} className="text-sm border-l-4 border-danger bg-danger/5 px-3 py-1.5 animate-in slide-in-from-left duration-300" style={{ delay: `${i * 100}ms` }}>⚠️ {e}</div>)}
               </div>
             </div>
+            <div className="bg-muted/50 p-4 rounded-xl text-sm italic text-muted-foreground">
+              {result.summary}
+            </div>
             <div className="bg-success/5 border border-success/20 rounded-xl p-4">
-              <div className="text-sm font-semibold text-success mb-2">Community Impact: If recovered, this {formatINR(245)} could fund:</div>
+              <div className="text-sm font-semibold text-success mb-2">Community Impact: If recovered, these funds could support:</div>
               <div className="grid grid-cols-3 gap-3 text-xs">
                 <div><div className="text-2xl font-bold text-success">30</div>classrooms</div>
                 <div><div className="text-2xl font-bold text-success">49</div>km of road</div>
@@ -104,7 +117,10 @@ function Analyze() {
             <div className="flex gap-3">
               <button className="bg-navy-deep text-white px-5 py-2.5 rounded-lg text-sm font-semibold inline-flex items-center gap-2"><Save className="w-4 h-4" /> Save to Database</button>
               <button className="bg-saffron text-white px-5 py-2.5 rounded-lg text-sm font-semibold inline-flex items-center gap-2"><FileText className="w-4 h-4" /> Generate RTI</button>
-              <span className="ml-auto self-center text-xs text-saffron">🔌 AI Integration Ready</span>
+              <span className="ml-auto self-center text-xs text-success flex items-center gap-1">
+                <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                Live Gemini Analysis
+              </span>
             </div>
           </div>
         )}

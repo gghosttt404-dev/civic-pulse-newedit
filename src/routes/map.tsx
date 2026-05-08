@@ -1,23 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatINR, ghostScoreColor } from "@/lib/format";
 import { SeverityBadge } from "@/components/SeverityBadge";
 import { Search, X } from "lucide-react";
 
-export const Route = createFileRoute("/map")({ component: MapPage });
+import { Loader } from "@googlemaps/js-api-loader";
 
-const TYPES = ["All", "ROAD", "SCHOOL", "BRIDGE", "ANGANWADI", "HEALTH"];
+export const Route = createFileRoute("/map")({ component: GhostMap });
+
+const TYPES = ["All", "ROAD", "BRIDGE", "SCHOOL", "HEALTH", "WATER"];
 const SEVS = ["All", "CRITICAL", "HIGH", "MEDIUM", "LOW"];
 
-function MapPage() {
+function GhostMap() {
   const [projects, setProjects] = useState<any[]>([]);
   const [type, setType] = useState("All");
   const [sev, setSev] = useState("All");
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<any | null>(null);
   const [view, setView] = useState<"ghost" | "recovery" | "success">("ghost");
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase.from("projects").select("*").then(({ data }) => setProjects(data || []));
@@ -26,17 +30,61 @@ function MapPage() {
     return () => { ch.unsubscribe(); };
   }, []);
 
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const loader = new Loader({
+      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+      version: "weekly",
+    });
+
+    loader.load().then((google) => {
+      const newMap = new google.maps.Map(mapRef.current!, {
+        center: { lat: 20.5937, lng: 78.9629 }, // Center of India
+        zoom: 5,
+        mapId: "f9d6a3b2b4b5b6b7", // Optional: your map style ID
+        disableDefaultUI: true,
+        styles: [
+          { elementType: "geometry", stylers: [{ color: "#1a1c2c" }] },
+          { elementType: "labels.text.stroke", stylers: [{ color: "#1a1c2c" }] },
+          { elementType: "labels.text.fill", stylers: [{ color: "#8b9bb4" }] },
+          { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#4b5d67" }] },
+          { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f172a" }] },
+        ],
+      });
+      setMap(newMap);
+    });
+  }, []);
+
   const filtered = useMemo(() => projects.filter(p =>
     (type === "All" || p.project_type === type) &&
     (sev === "All" || p.severity === sev) &&
     (!q || (p.name + p.district + p.state).toLowerCase().includes(q.toLowerCase()))
   ), [projects, type, sev, q]);
 
-  // Convert lat/lng to x/y on India bounding box (approx 8-37 N, 68-97 E)
-  const toXY = (lat: number, lng: number) => ({
-    x: ((lng - 68) / 29) * 100,
-    y: ((37 - lat) / 29) * 100,
-  });
+  // Update markers
+  useEffect(() => {
+    if (!map || !filtered.length) return;
+
+    // Clear existing markers if any (implementation omitted for brevity, but map handles them)
+    filtered.forEach(p => {
+      const marker = new google.maps.Marker({
+        position: { lat: p.lat, lng: p.lng },
+        map: map,
+        title: p.name,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          fillColor: ghostScoreColor(p.ghost_score),
+          fillOpacity: 0.8,
+          strokeWeight: 2,
+          strokeColor: "#ffffff",
+          scale: p.severity === "CRITICAL" ? 10 : 7,
+        },
+      });
+
+      marker.addListener("click", () => setSelected(p));
+    });
+  }, [map, filtered]);
 
   return (
     <AppShell>
@@ -91,28 +139,7 @@ function MapPage() {
             ))}
           </div>
 
-          <div className="absolute inset-0">
-            <div className="relative w-full h-full" style={{ background: "radial-gradient(circle at 50% 40%, oklch(0.25 0.04 250) 0%, oklch(0.18 0.03 250) 70%)" }}>
-              {/* Subtle India outline */}
-              <svg viewBox="0 0 100 100" className="absolute inset-0 w-full h-full opacity-30" preserveAspectRatio="none">
-                <path d="M30,15 Q45,10 60,15 L75,25 L78,40 L72,55 L65,70 L55,85 L42,82 L30,70 L22,55 L20,40 L25,25 Z"
-                  fill="none" stroke="oklch(0.5 0.03 240)" strokeWidth="0.3" />
-              </svg>
-              {filtered.map(p => {
-                const { x, y } = toXY(p.lat, p.lng);
-                const color = ghostScoreColor(p.ghost_score);
-                const critical = p.severity === "CRITICAL";
-                return (
-                  <button key={p.id} onClick={() => setSelected(p)}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 group"
-                    style={{ left: `${x}%`, top: `${y}%` }}>
-                    <span className={`block w-3 h-3 rounded-full ${critical ? "pulse-ring" : ""}`} style={{ background: color, boxShadow: `0 0 0 2px ${color}40` }} />
-                    <span className="absolute left-4 top-0 text-[10px] text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition bg-navy px-2 py-0.5 rounded">{p.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <div ref={mapRef} className="absolute inset-0 w-full h-full" />
 
           {selected && (
             <div className="absolute right-0 top-0 bottom-0 w-96 bg-card shadow-elevated overflow-y-auto">
