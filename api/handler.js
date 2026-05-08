@@ -1,3 +1,6 @@
+// Handler Build Version: 2026-05-08 10:45 UTC
+console.log("Server bridge initialized - v1.0.5");
+
 // Force populate environment variables before importing the handler
 process.env.SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 process.env.SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
