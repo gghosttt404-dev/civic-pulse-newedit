@@ -129,25 +129,25 @@ function Onboarding() {
   );
 }
 
-function Section({ title, children }: any) { return <div><h2 className="text-2xl font-bold mb-4">{title}</h2><div className="space-y-4">{children}</div></div>; }
-function Row({ children }: any) { return <div className="grid grid-cols-2 gap-4">{children}</div>; }
-function Input({ label, value, onChange, type = "text" }: any) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) { return <div><h2 className="text-2xl font-bold mb-4">{title}</h2><div className="space-y-4">{children}</div></div>; }
+function Row({ children }: { children: React.ReactNode }) { return <div className="grid grid-cols-2 gap-4">{children}</div>; }
+function Input({ label, value, onChange, type = "text" }: { label: string; value: any; onChange: (v: string) => void; type?: string }) {
   return <div><label className="text-sm font-medium block mb-1.5">{label}</label>
     <input type={type} value={value} onChange={e => onChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-saffron outline-none" /></div>;
 }
-function Select({ label, value, onChange, options }: any) {
+function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return <div><label className="text-sm font-medium block mb-1.5">{label}</label>
     <select value={value} onChange={e => onChange(e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm bg-white">
-      {options.map((o: string) => <option key={o} value={o}>{o.replaceAll("_", " ")}</option>)}
+      {options.map((o) => <option key={o} value={o}>{o.replaceAll("_", " ")}</option>)}
     </select></div>;
 }
-function Radio({ label, value, onChange, options }: any) {
+function Radio({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return <div><label className="text-sm font-medium block mb-2">{label}</label>
-    <div className="flex flex-wrap gap-2">{options.map((o: string) =>
+    <div className="flex flex-wrap gap-2">{options.map((o) =>
       <button key={o} type="button" onClick={() => onChange(o)} className={`px-4 py-2 rounded-full text-sm border ${value === o ? "bg-navy-deep text-white border-navy-deep" : "bg-white hover:border-saffron"}`}>{o}</button>)}
     </div></div>;
 }
-function Toggle({ label, value, onChange }: any) {
+function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
   return <div className="flex items-center justify-between">
     <span className="text-sm font-medium">{label}</span>
     <button onClick={() => onChange(!value)} className={`w-11 h-6 rounded-full relative transition ${value ? "bg-saffron" : "bg-muted"}`}>
