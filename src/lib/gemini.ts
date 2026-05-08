@@ -36,6 +36,14 @@ export const analyzeClaim = createServerFn("POST", async (text: string) => {
     const response = await result.response;
     const jsonStr = response.text().replace(/```json|```/g, "").trim();
     return JSON.parse(jsonStr) as AnalysisResult;
+  } catch (error) {
+    console.error("Gemini Analysis Error:", error);
+    return {
+      score: 50,
+      points: ["Analysis currently unavailable"],
+      summary: "We couldn't perform a live AI analysis at this moment.",
+      severity: "MEDIUM"
+    } as AnalysisResult;
   }
 });
 
