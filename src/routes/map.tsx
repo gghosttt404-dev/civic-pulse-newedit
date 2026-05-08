@@ -6,12 +6,18 @@ import { formatINR, ghostScoreColor } from "@/lib/format";
 import { SeverityBadge } from "@/components/SeverityBadge";
 import { Search, X } from "lucide-react";
 
-import { Loader } from "@googlemaps/js-api-loader";
+import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 
 export const Route = createFileRoute("/map")({ component: GhostMap });
 
 const TYPES = ["All", "ROAD", "BRIDGE", "SCHOOL", "HEALTH", "WATER"];
 const SEVS = ["All", "CRITICAL", "HIGH", "MEDIUM", "LOW"];
+
+// Set options globally
+setOptions({
+  apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+  version: "weekly",
+});
 
 function GhostMap() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -33,12 +39,7 @@ function GhostMap() {
   useEffect(() => {
     if (!mapRef.current) return;
 
-    const loader = new Loader({
-      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-      version: "weekly",
-    });
-
-    loader.importLibrary("maps").then(({ Map }) => {
+    importLibrary("maps").then(({ Map }) => {
       const newMap = new Map(mapRef.current!, {
         center: { lat: 20.5937, lng: 78.9629 }, // Center of India
         zoom: 5,
@@ -66,12 +67,7 @@ function GhostMap() {
   useEffect(() => {
     if (!map || !filtered.length) return;
 
-    const loader = new Loader({
-      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-      version: "weekly",
-    });
-
-    loader.importLibrary("marker").then(({ Marker }) => {
+    importLibrary("marker").then(({ Marker }) => {
       filtered.forEach(p => {
         const marker = new Marker({
           position: { lat: p.lat, lng: p.lng },
