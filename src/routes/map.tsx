@@ -114,11 +114,15 @@ function GhostMap() {
       .then(async ({ setOptions, importLibrary }) => {
         setOptions({
           apiKey,
-          version: "weekly",
-          libraries: ["visualization"],
+          version: "3.55",
         });
 
-        const { Map } = await importLibrary("maps");
+        const [ { Map }, { AdvancedMarkerElement }, { HeatmapLayer } ] = await Promise.all([
+          importLibrary("maps"),
+          importLibrary("marker"),
+          importLibrary("visualization"),
+        ]);
+        
         if (cancelled || !mapRef.current) return;
 
         const nextMap = new Map(mapRef.current, {
