@@ -35,7 +35,16 @@ function RTIHub() {
   const [editing, setEditing] = useState(false);
   const [draftText, setDraftText] = useState("");
 
-  const load = () => supabase.from("rtis").select("*").order("generated_at", { ascending: false }).then(({ data }) => setRtis(data || []));
+  const load = () => {
+    const uid = getUserId();
+    if (!uid) return;
+    supabase
+      .from("rtis")
+      .select("*")
+      .eq("user_id", uid)
+      .order("generated_at", { ascending: false })
+      .then(({ data }) => setRtis(data || []));
+  };
   
   useEffect(() => { load(); }, []);
 
@@ -58,7 +67,13 @@ function RTIHub() {
       status: "DRAFTED",
     }).select().single();
 
-    if (error) toast.error(error.message);
+    if (error) {
+      if (error.code === "23503") {
+        toast.error("Session expired or invalid. Please re-onboard to continue.");
+      } else {
+        toast.error(error.message);
+      }
+    }
     else { 
       setGenerated(data); 
       toast.success("RTI drafted by AI"); 

@@ -98,9 +98,14 @@ function Onboarding() {
       .select()
       .single();
 
-    const profile = error ? fallbackRow : row;
-    setUserId(profile.id);
-    setUserProfile(profile);
+    if (error) {
+      toast.error("Failed to save profile to database. Please check your connection.");
+      console.error("Profile save error:", error);
+      return;
+    }
+
+    setUserId(row.id);
+    setUserProfile(row);
     toast.success("Profile saved! Finding your schemes...");
     nav({ to: "/grants" });
   };
