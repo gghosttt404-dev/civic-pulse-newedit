@@ -47,9 +47,15 @@ function Reports() {
     })
     .slice(0, 8);
 
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const generate = () => {
-    const el = document.getElementById("report-view");
-    el?.scrollIntoView({ behavior: "smooth" });
+    setIsGenerating(true);
+    setTimeout(() => {
+      setIsGenerating(false);
+      const el = document.getElementById("report-view");
+      el?.scrollIntoView({ behavior: "smooth" });
+    }, 1500);
   };
 
   const downloadPDF = () => {
@@ -90,8 +96,17 @@ function Reports() {
             placeholder="District (optional)"
             className="flex-1 min-w-[200px] px-3 py-2 border rounded-lg text-sm"
           />
-          <button onClick={generate} className="bg-saffron text-white px-5 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
-            <BarChart3 className="w-4 h-4" /> Generate Report
+          <button 
+            disabled={isGenerating}
+            onClick={generate} 
+            className="bg-saffron text-white px-5 rounded-lg text-sm font-semibold inline-flex items-center gap-2 disabled:opacity-50"
+          >
+            {isGenerating ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <BarChart3 className="w-4 h-4" />
+            )}
+            {isGenerating ? "Analyzing Ground Data..." : "Generate Report"}
           </button>
         </div>
 
