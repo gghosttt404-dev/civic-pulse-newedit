@@ -34,6 +34,7 @@ function Onboarding() {
   });
 
   const update = (k: string, v: any) => setData((d: any) => ({ ...d, [k]: v }));
+  const onText = (k: string) => (v: any) => update(k, v);
 
   const submit = async () => {
     const { data: row, error } = await supabase.from("users").insert({ ...data, profile_complete: true }).select().single();
