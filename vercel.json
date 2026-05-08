@@ -10,5 +10,10 @@
       "src": "/(.*)",
       "dest": "/api/handler"
     }
-  ]
+  ],
+  "functions": {
+    "api/handler.js": {
+      "includeFiles": "dist/server/**"
+    }
+  }
 }
