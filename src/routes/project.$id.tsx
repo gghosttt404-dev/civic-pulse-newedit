@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getUserId } from "@/lib/session";
+import { CommunityImpact } from "@/components/CommunityImpact";
 
 export const Route = createFileRoute("/project/$id")({ component: ProjectDetail });
 
@@ -165,35 +166,7 @@ function ProjectDetail() {
         </div>
 
         {/* Community Impact */}
-        <div className="bg-success/5 border-2 border-success/20 rounded-2xl p-6">
-          <h2 className="font-bold text-lg mb-1 text-success">Community Impact Redirector</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            If this {formatINR(lakhs)} was recovered, it could fund:
-          </p>
-          <div className="grid md:grid-cols-3 gap-3">
-            <ImpactCard
-              title="Classrooms"
-              value={Math.floor(lakhs / 8)}
-              unit="rooms"
-              detail="@ ₹8L per classroom"
-            />
-            <ImpactCard
-              title="Rural Roads"
-              value={Math.floor(lakhs / 5)}
-              unit="km"
-              detail="@ ₹5L per km PMGSY"
-            />
-            <ImpactCard
-              title="PHC Medicine"
-              value={Math.floor(lakhs / 3)}
-              unit="months"
-              detail="@ ₹3L per month supply"
-            />
-          </div>
-          <button className="mt-5 bg-success text-white px-5 py-2.5 rounded-lg text-sm font-semibold">
-            Generate Reallocation Proposal
-          </button>
-        </div>
+        <CommunityImpact lakhs={lakhs} />
 
         {/* Actions */}
         <div className="flex flex-wrap gap-3">
@@ -253,17 +226,6 @@ function Row({ k, v }: { k: string; v: any }) {
     <div className="flex justify-between gap-4 py-2 border-b border-white/10">
       <dt className="text-white/50">{k}</dt>
       <dd className="text-right">{v}</dd>
-    </div>
-  );
-}
-function ImpactCard({ title, value, unit, detail }: any) {
-  return (
-    <div className="bg-white rounded-lg p-4">
-      <div className="text-3xl font-bold text-success">{value}</div>
-      <div className="text-sm font-medium">{unit}</div>
-      <div className="text-xs text-muted-foreground mt-1">
-        {title} • {detail}
-      </div>
     </div>
   );
 }

@@ -5,7 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatINR, ghostScoreColor } from "@/lib/format";
 import { projectsOrFallback, type Project } from "@/lib/sample-projects";
 import { SeverityBadge } from "@/components/SeverityBadge";
-import { Search, X } from "lucide-react";
+import { Search, X, FileText, Camera, Download, Share2, AlertTriangle } from "lucide-react";
+import { CommunityImpact } from "@/components/CommunityImpact";
+import { toast } from "sonner";
+import { getUserId } from "@/lib/session";
 
 export const Route = createFileRoute("/map")({ component: GhostMap });
 
@@ -33,6 +36,7 @@ function GhostMap() {
   const [sev, setSev] = useState("All");
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Project | null>(null);
+  const [reports, setReports] = useState<any[]>([]);
   const [view, setView] = useState<MapView>("ghost");
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -93,6 +97,7 @@ function GhostMap() {
         setOptions({
           apiKey,
           version: "weekly",
+          libraries: ["visualization"],
         });
 
         const { Map } = await importLibrary("maps");
@@ -130,9 +135,32 @@ function GhostMap() {
     let cancelled = false;
 
     import("@googlemaps/js-api-loader")
-      .then(({ importLibrary }) => importLibrary("marker"))
-      .then(({ AdvancedMarkerElement }) => {
+      .then(({ importLibrary }) => Promise.all([importLibrary("marker"), importLibrary("visualization")]))
+      .then(([{ AdvancedMarkerElement }, { HeatmapLayer }]) => {
         if (cancelled) return;
+
+        if (view === "ghost" || view === "recovery") {
+          const heatmapData = filtered
+            .filter((p) => p.lat != null && p.lng != null)
+            .map((p) => ({
+              location: new google.maps.LatLng(p.lat!, p.lng!),
+              weight: view === "ghost" ? (p.ghost_score ?? 0) / 10 : Number(p.sanctioned_amount) / 10,
+            }));
+
+          const heatmap = new HeatmapLayer({
+            data: heatmapData,
+            map,
+            radius: 40,
+            opacity: 0.8,
+            gradient: view === "ghost" 
+              ? ["rgba(0, 255, 255, 0)", "rgba(0, 255, 255, 1)", "rgba(0, 191, 255, 1)", "rgba(0, 127, 255, 1)", "rgba(0, 63, 255, 1)", "rgba(0, 0, 255, 1)", "rgba(0, 0, 223, 1)", "rgba(0, 0, 191, 1)", "rgba(0, 0, 159, 1)", "rgba(0, 0, 127, 1)", "rgba(63, 0, 91, 1)", "rgba(127, 0, 63, 1)", "rgba(191, 0, 31, 1)", "rgba(255, 0, 0, 1)"]
+              : ["rgba(0, 255, 0, 0)", "rgba(0, 255, 0, 1)", "rgba(50, 255, 0, 1)", "rgba(100, 255, 0, 1)", "rgba(150, 255, 0, 1)", "rgba(200, 255, 0, 1)", "rgba(255, 255, 0, 1)", "rgba(255, 200, 0, 1)", "rgba(255, 150, 0, 1)", "rgba(255, 100, 0, 1)", "rgba(255, 50, 0, 1)", "rgba(255, 0, 0, 1)"]
+          });
+
+          return () => {
+            heatmap.setMap(null);
+          };
+        }
 
         markers = filtered.flatMap((project) => {
           if (project.lat == null || project.lng == null) return [];
@@ -171,13 +199,44 @@ function GhostMap() {
       });
       markers = [];
     };
-  }, [filtered, map]);
+  }, [filtered, map, view]);
 
   useEffect(() => {
     if (!map || selected?.lat == null || selected.lng == null) return;
     map.panTo({ lat: selected.lat, lng: selected.lng });
     map.setZoom(Math.max(map.getZoom() ?? 5, 7));
+
+    // Fetch reports for selected project
+    supabase
+      .from("citizen_reports")
+      .select("*")
+      .eq("project_id", selected.id)
+      .then(({ data }) => setReports(data || []));
   }, [map, selected]);
+
+  const generateRTI = async () => {
+    if (!selected) return;
+    const { data, error } = await supabase
+      .from("rtis")
+      .insert({
+        user_id: getUserId(),
+        project_id: selected.id,
+        rti_type: "GHOST",
+        pio_name: "The PIO",
+        pio_address: `Office of the District Magistrate, ${selected.district}`,
+        department: selected.executing_agency,
+        subject_line: `Information regarding ${selected.name}`,
+        body_english: `Under Section 6(1) of the RTI Act, 2005, I request information regarding "${selected.name}" sanctioned for ₹${selected.sanctioned_amount} lakhs in ${selected.district}, ${selected.state}: 1) Date-wise expenditure. 2) Contractor and tender documents. 3) Site inspection reports. 4) Geo-tagged completion photos. 5) Third-party quality audit.`,
+        status: "DRAFTED",
+      })
+      .select()
+      .single();
+    if (error) toast.error(error.message);
+    else {
+      toast.success("RTI drafted! Redirecting...");
+      window.location.href = "/rti";
+    }
+  };
 
   return (
     <AppShell>
@@ -356,20 +415,75 @@ function GhostMap() {
                     <div className="font-medium text-sm">{selected.executing_agency}</div>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Link
-                    to="/project/$id"
-                    params={{ id: selected.id }}
-                    className="bg-saffron text-white text-center py-2.5 rounded-lg text-sm font-semibold"
-                  >
-                    View Full Details
-                  </Link>
-                  <Link
-                    to="/rti"
-                    className="border text-center py-2.5 rounded-lg text-sm font-semibold"
-                  >
-                    Generate RTI
-                  </Link>
+
+                <div className="space-y-4">
+                  {/* Evidence summary */}
+                  <div className="space-y-2">
+                    <div className="bg-danger/5 border-l-4 border-danger p-3 text-xs">
+                      <div className="font-bold flex items-center gap-1.5 mb-1 text-danger uppercase tracking-wider">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Satellite Evidence
+                      </div>
+                      <p className="text-muted-foreground">{selected.gemini_analysis}</p>
+                    </div>
+                    {(selected.evidence_points as string[] || []).map((e, i) => (
+                      <div key={i} className="bg-amber-50 border-l-4 border-amber-400 p-2 text-[10px] text-amber-800 flex items-center gap-2">
+                        <AlertTriangle className="w-3 h-3 flex-shrink-0" /> {e}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Community Impact */}
+                  <CommunityImpact lakhs={Number(selected.sanctioned_amount)} />
+
+                  {/* Actions */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={generateRTI}
+                      className="bg-saffron text-white py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+                    >
+                      <FileText className="w-3.5 h-3.5" /> Generate RTI
+                    </button>
+                    <Link
+                      to="/project/$id"
+                      params={{ id: selected.id }}
+                      className="bg-navy-deep text-white py-2 rounded-lg text-xs font-semibold flex items-center justify-center"
+                    >
+                      Full Details
+                    </Link>
+                    <button className="border py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                      <Camera className="w-3.5 h-3.5" /> Report
+                    </button>
+                    <button className="border py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                      <Download className="w-3.5 h-3.5" /> Evidence
+                    </button>
+                  </div>
+
+                  {/* Citizen Reports */}
+                  <div>
+                    <h4 className="font-bold text-xs uppercase tracking-wider mb-2">Ground Reports</h4>
+                    {reports.length === 0 ? (
+                      <div className="text-center py-4 border rounded-lg bg-muted/30">
+                        <Camera className="w-6 h-6 mx-auto mb-1 opacity-20" />
+                        <p className="text-[10px] text-muted-foreground">No ground reports yet</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {reports.slice(0, 2).map((r) => (
+                          <div key={r.id} className="flex gap-2 p-2 border rounded-lg bg-white">
+                            {r.photo_url && (
+                              <img src={r.photo_url} alt="" className="w-12 h-12 rounded object-cover flex-shrink-0" />
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-[10px] line-clamp-2">{r.note}</p>
+                              <p className="text-[9px] text-muted-foreground mt-0.5">
+                                {new Date(r.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
