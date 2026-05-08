@@ -3,8 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 function createSupabaseClient() {
-  const url = import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  const url = "https://qzefyiamfhcvwyhrhums.supabase.co";
+  const key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF6ZWZ5aWFtZmhjdnd5aHJodW1zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODY3MzIsImV4cCI6MjA5MzA2MjczMn0.y4C44BreHV8GINtzARrJgnbciNgwOyaMfFf5OJjQBzo";
 
   if (!url || !key) {
     console.error("[Supabase Debug] URL found:", !!url);
