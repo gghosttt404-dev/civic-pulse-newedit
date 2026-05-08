@@ -15,7 +15,7 @@ export default async function (req, res) {
       duplex: 'half'
     });
 
-    const response = await handler.fetch(request);
+    const response = await handler.fetch(request, process.env);
 
     // Convert Web Response to Node.js response
     res.statusCode = response.status;
