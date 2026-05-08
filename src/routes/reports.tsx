@@ -47,17 +47,26 @@ function Reports() {
     })
     .slice(0, 8);
 
+  const generate = () => {
+    const el = document.getElementById("report-view");
+    el?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const downloadPDF = () => {
+    window.print();
+  };
+
   return (
     <AppShell>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-        <div>
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6 print:p-0">
+        <div className="print:hidden">
           <h1 className="text-3xl font-bold">District Intelligence Reports</h1>
           <p className="text-muted-foreground">
             Generate evidence-backed civic intelligence reports for any district.
           </p>
         </div>
 
-        <div className="bg-card border rounded-xl p-5 shadow-card flex flex-wrap gap-3">
+        <div className="bg-card border rounded-xl p-5 shadow-card flex flex-wrap gap-3 print:hidden">
           <select
             value={state}
             onChange={(e) => setState(e.target.value)}
@@ -81,44 +90,59 @@ function Reports() {
             placeholder="District (optional)"
             className="flex-1 min-w-[200px] px-3 py-2 border rounded-lg text-sm"
           />
-          <button className="bg-saffron text-white px-5 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
+          <button onClick={generate} className="bg-saffron text-white px-5 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
             <BarChart3 className="w-4 h-4" /> Generate Report
           </button>
         </div>
 
         {filtered.length > 0 && (
-          <div className="bg-card border rounded-2xl p-6 shadow-card">
-            <h2 className="font-bold text-xl mb-1">
-              Report: {district || "All districts"} • {state}
-            </h2>
-            <p className="text-xs text-muted-foreground mb-5">
-              Compiled from satellite AI + government records
-            </p>
+          <div id="report-view" className="bg-card border rounded-2xl p-6 shadow-card print:border-0 print:shadow-none print:p-0">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h2 className="font-bold text-xl mb-1">
+                  Civic Intelligence Report: {district || "All districts"} • {state}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Compiled from satellite AI + government records • {new Date().toLocaleDateString()}
+                </p>
+              </div>
+              <div className="hidden print:block text-right">
+                <div className="text-sm font-bold text-saffron">NAGRIK AI</div>
+                <div className="text-[10px] text-muted-foreground">Transparency Platform</div>
+              </div>
+            </div>
 
             <div className="grid md:grid-cols-3 gap-4 mb-6">
               <Stat label="Ghost Projects" value={ghosts.length} tone="danger" />
               <Stat label="Estimated Waste" value={formatINR(totalWaste)} tone="saffron" />
-              <Stat label="Schemes Available" value={schemeCount} tone="success" />
+              <Stat label="Schemes Monitored" value={schemeCount} tone="success" />
             </div>
 
-            <h3 className="font-semibold mb-2 text-sm">Top Ghost Projects</h3>
-            <div className="space-y-2 mb-5">
-              {ghosts.slice(0, 5).map((p) => (
+            <h3 className="font-semibold mb-2 text-sm uppercase tracking-wider text-muted-foreground">Flagged Infrastructure Projects</h3>
+            <div className="space-y-2 mb-8">
+              {ghosts.slice(0, 10).map((p) => (
                 <div
                   key={p.id}
-                  className="flex items-center justify-between bg-muted/40 p-3 rounded-lg text-sm"
+                  className="flex items-center justify-between bg-muted/40 p-4 rounded-xl text-sm border border-transparent hover:border-saffron/20 transition"
                 >
-                  <span className="font-medium">{p.name}</span>
-                  <div className="flex items-center gap-3">
-                    <span>{formatINR(p.sanctioned_amount)}</span>
+                  <div className="min-w-0 flex-1 mr-4">
+                    <div className="font-bold truncate">{p.name}</div>
+                    <div className="text-[10px] text-muted-foreground">{p.district}, {p.state} • {p.executing_agency}</div>
+                  </div>
+                  <div className="flex items-center gap-4 flex-shrink-0">
+                    <span className="font-bold tabular-nums">{formatINR(p.sanctioned_amount)}</span>
                     <SeverityBadge severity={p.severity ?? "LOW"} />
                   </div>
                 </div>
               ))}
             </div>
 
-            <button className="bg-navy-deep text-white px-5 py-2.5 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
-              <Download className="w-4 h-4" /> Download PDF Report — Coming Soon
+            <div className="bg-navy-deep/5 border-l-4 border-navy-deep p-4 text-xs italic text-muted-foreground mb-8">
+              "This report uses satellite change detection to identify discrepancies between government fund releases and ground reality. A high ghost score indicates a potential 'ghost project' where funds were spent but infrastructure is missing."
+            </div>
+
+            <button onClick={downloadPDF} className="bg-navy-deep text-white px-5 py-2.5 rounded-lg text-sm font-semibold inline-flex items-center gap-2 print:hidden">
+              <Download className="w-4 h-4" /> Download Intelligence PDF
             </button>
           </div>
         )}

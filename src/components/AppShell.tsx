@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside className={cn(
-        "fixed lg:static inset-y-0 left-0 z-40 w-60 bg-navy-deep text-white flex flex-col transition-transform",
+        "fixed lg:static inset-y-0 left-0 z-40 w-60 bg-navy-deep text-white flex flex-col transition-transform print:hidden",
         open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="px-5 py-5 border-b border-white/10 flex items-center justify-between">
@@ -70,7 +70,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-card border-b flex items-center px-4 gap-3 sticky top-0 z-30">
+        <header className="h-14 bg-card border-b flex items-center px-4 gap-3 sticky top-0 z-30 print:hidden">
           <button onClick={() => setOpen(true)} className="lg:hidden"><Menu className="w-5 h-5" /></button>
           <div className="flex-1" />
           <button className="relative p-2 rounded-md hover:bg-muted">
@@ -79,10 +79,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
           <div className="text-sm text-muted-foreground hidden sm:block">{profile?.district}, {profile?.state}</div>
         </header>
-        <main className="flex-1 min-w-0">{children}</main>
+        <main className="flex-1 min-w-0 print:p-0">{children}</main>
       </div>
 
-      <NagrikBotBubble />
+      <div className="print:hidden">
+        <NagrikBotBubble />
+      </div>
     </div>
   );
 }
