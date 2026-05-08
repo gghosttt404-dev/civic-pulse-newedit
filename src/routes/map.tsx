@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatINR, ghostScoreColor } from "@/lib/format";
 import { projectsOrFallback, type Project } from "@/lib/sample-projects";
@@ -26,8 +26,6 @@ function GhostMap() {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Project | null>(null);
   const [view, setView] = useState<MapView>("ghost");
-  const [map, setMap] = useState<google.maps.Map | null>(null);
-  const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     supabase
@@ -50,49 +48,6 @@ function GhostMap() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!mapRef.current) return;
-    let cancelled = false;
-
-    import("@googlemaps/js-api-loader")
-      .then(({ setOptions, importLibrary }) => {
-        if (cancelled) return;
-
-        setOptions({
-          apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-          version: "weekly",
-        });
-
-        return importLibrary("maps");
-      })
-      .then((mapsLibrary) => {
-        if (!mapsLibrary || cancelled || !mapRef.current) return;
-        const { Map } = mapsLibrary;
-        const newMap = new Map(mapRef.current!, {
-          center: { lat: 20.5937, lng: 78.9629 }, // Center of India
-          zoom: 5,
-          mapId: "f9d6a3b2b4b5b6b7",
-          disableDefaultUI: true,
-          styles: [
-            { elementType: "geometry", stylers: [{ color: "#1a1c2c" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#1a1c2c" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#8b9bb4" }] },
-            {
-              featureType: "administrative.country",
-              elementType: "geometry.stroke",
-              stylers: [{ color: "#4b5d67" }],
-            },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#0f172a" }] },
-          ],
-        });
-        setMap(newMap);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const filtered = useMemo(
     () =>
       projects.filter(
@@ -103,37 +58,6 @@ function GhostMap() {
       ),
     [projects, type, sev, q],
   );
-
-  // Update markers
-  useEffect(() => {
-    if (!map || !filtered.length) return;
-    let markers: google.maps.Marker[] = [];
-    let cancelled = false;
-
-    import("@googlemaps/js-api-loader")
-      .then(({ importLibrary }) => importLibrary("marker"))
-      .then(({ Marker }) => {
-        if (cancelled) return;
-        filtered.forEach((p) => {
-          if (p.lat == null || p.lng == null) return;
-
-          const marker = new Marker({
-            position: { lat: p.lat, lng: p.lng },
-            map: map,
-            title: p.name,
-          });
-
-          marker.addListener("click", () => setSelected(p));
-          markers.push(marker);
-        });
-      });
-
-    return () => {
-      cancelled = true;
-      markers.forEach((marker) => marker.setMap(null));
-      markers = [];
-    };
-  }, [map, filtered]);
 
   return (
     <AppShell>
@@ -231,7 +155,30 @@ function GhostMap() {
             ))}
           </div>
 
-          <div ref={mapRef} className="absolute inset-0 w-full h-full" />
+          <div className="absolute inset-0 overflow-hidden bg-[radial-gradient(circle_at_30%_35%,rgba(255,128,0,0.18),transparent_22%),radial-gradient(circle_at_72%_52%,rgba(34,197,94,0.16),transparent_18%),linear-gradient(135deg,#111827_0%,#0f172a_48%,#182033_100%)]">
+            <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:48px_48px]" />
+            <div className="absolute left-[16%] top-[18%] h-[62%] w-[54%] rounded-[55%_45%_62%_38%] border border-white/15 bg-emerald-400/10 shadow-[inset_0_0_60px_rgba(16,185,129,0.12)]" />
+            <div className="absolute left-[34%] top-[22%] h-[40%] w-[34%] rounded-[45%_55%_42%_58%] border border-white/10 bg-saffron/10" />
+
+            {filtered.map((project) => {
+              if (project.lat == null || project.lng == null) return null;
+              const left = Math.min(86, Math.max(12, ((project.lng - 68) / 30) * 74 + 12));
+              const top = Math.min(82, Math.max(14, ((36 - project.lat) / 28) * 68 + 14));
+              const score = project.ghost_score ?? 0;
+              const tone = score > 80 ? "bg-danger" : score > 55 ? "bg-saffron" : "bg-success";
+
+              return (
+                <button
+                  key={project.id}
+                  onClick={() => setSelected(project)}
+                  className={`absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-lg ${tone} ${selected?.id === project.id ? "ring-4 ring-white/40" : ""}`}
+                  style={{ left: `${left}%`, top: `${top}%` }}
+                  title={project.name}
+                  aria-label={project.name}
+                />
+              );
+            })}
+          </div>
 
           {selected && (
             <div className="absolute right-0 top-0 bottom-0 w-96 bg-card shadow-elevated overflow-y-auto">

@@ -1,4 +1,19 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
+import {
+  Bot,
+  FileSearch,
+  FileText,
+  Gauge,
+  ListChecks,
+  Satellite,
+  Save,
+  Sparkles,
+} from "lucide-react";
+import { useState } from "react";
+
+import { AppShell } from "@/components/AppShell";
+import { GhostScoreGauge } from "@/components/GhostScoreGauge";
+import { SeverityBadge } from "@/components/SeverityBadge";
 import { analyzeClaim, type AnalysisResult } from "@/lib/gemini";
 
 export const Route = createFileRoute("/analyze")({ component: Analyze });
@@ -21,13 +36,14 @@ function Analyze() {
 
   const run = async () => {
     if (!text.trim()) return;
-    setDone(false); setStep(0);
+    setDone(false);
+    setStep(0);
     setResult(null);
 
     // Run simulations for UI effect
     for (let i = 0; i < AGENTS.length; i++) {
       setStep(i);
-      await new Promise(r => setTimeout(r, AGENTS[i].ms / 2));
+      await new Promise((r) => setTimeout(r, AGENTS[i].ms / 2));
     }
 
     try {
@@ -48,20 +64,47 @@ function Analyze() {
       <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Analyse any infrastructure claim</h1>
-          <p className="text-muted-foreground">Paste any project description, tender notice, or news article. AI will analyse it in seconds.</p>
+          <p className="text-muted-foreground">
+            Paste any project description, tender notice, or news article. AI will analyse it in
+            seconds.
+          </p>
         </div>
 
         <div className="bg-card border rounded-2xl p-6 shadow-card space-y-4">
-          <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Paste project description, tender notice, news article, or any claim..."
-            className="w-full h-32 p-4 bg-muted rounded-lg text-sm outline-none focus:ring-2 focus:ring-saffron" />
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Paste project description, tender notice, news article, or any claim..."
+            className="w-full h-32 p-4 bg-muted rounded-lg text-sm outline-none focus:ring-2 focus:ring-saffron"
+          />
           <div className="grid grid-cols-3 gap-3">
-            <select value={state} onChange={e => setState(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
-              {["Maharashtra","Bihar","UP","Jharkhand","MP","Rajasthan","Karnataka"].map(s => <option key={s}>{s}</option>)}
+            <select
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              className="px-3 py-2 border rounded-lg text-sm"
+            >
+              {["Maharashtra", "Bihar", "UP", "Jharkhand", "MP", "Rajasthan", "Karnataka"].map(
+                (s) => (
+                  <option key={s}>{s}</option>
+                ),
+              )}
             </select>
-            <input value={district} onChange={e => setDistrict(e.target.value)} placeholder="District" className="px-3 py-2 border rounded-lg text-sm" />
-            <select className="px-3 py-2 border rounded-lg text-sm">{["ROAD","SCHOOL","BRIDGE","ANGANWADI","HEALTH"].map(s => <option key={s}>{s}</option>)}</select>
+            <input
+              value={district}
+              onChange={(e) => setDistrict(e.target.value)}
+              placeholder="District"
+              className="px-3 py-2 border rounded-lg text-sm"
+            />
+            <select className="px-3 py-2 border rounded-lg text-sm">
+              {["ROAD", "SCHOOL", "BRIDGE", "ANGANWADI", "HEALTH"].map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
           </div>
-          <button onClick={run} className="w-full bg-saffron text-white py-3.5 rounded-lg font-semibold inline-flex items-center justify-center gap-2">
+          <button
+            onClick={run}
+            className="w-full bg-saffron text-white py-3.5 rounded-lg font-semibold inline-flex items-center justify-center gap-2"
+          >
             <Sparkles className="w-4 h-4" /> Analyse with AI
           </button>
         </div>
@@ -72,14 +115,25 @@ function Analyze() {
             {AGENTS.map((a, i) => {
               const status = step > i ? "complete" : step === i ? "running" : "waiting";
               return (
-                <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${status === "running" ? "border-saffron bg-saffron/5" : status === "complete" ? "border-success/30 bg-success/5" : "border-muted"}`}>
-                  <a.icon className={`w-5 h-5 ${status === "complete" ? "text-success" : status === "running" ? "text-saffron" : "text-muted-foreground"}`} />
+                <div
+                  key={i}
+                  className={`flex items-center gap-3 p-3 rounded-lg border ${status === "running" ? "border-saffron bg-saffron/5" : status === "complete" ? "border-success/30 bg-success/5" : "border-muted"}`}
+                >
+                  <a.icon
+                    className={`w-5 h-5 ${status === "complete" ? "text-success" : status === "running" ? "text-saffron" : "text-muted-foreground"}`}
+                  />
                   <div className="flex-1">
                     <div className="text-sm font-semibold">{a.name}</div>
                     <div className="text-xs text-muted-foreground">{a.desc}</div>
                   </div>
-                  <span className={`text-xs font-bold ${status === "complete" ? "text-success" : status === "running" ? "text-saffron" : "text-muted-foreground"}`}>
-                    {status === "complete" ? "✓ COMPLETE" : status === "running" ? "RUNNING" : "WAITING"}
+                  <span
+                    className={`text-xs font-bold ${status === "complete" ? "text-success" : status === "running" ? "text-saffron" : "text-muted-foreground"}`}
+                  >
+                    {status === "complete"
+                      ? "✓ COMPLETE"
+                      : status === "running"
+                        ? "RUNNING"
+                        : "WAITING"}
                   </span>
                 </div>
               );
@@ -94,29 +148,54 @@ function Analyze() {
               <SeverityBadge severity={result.severity} />
             </div>
             <div className="flex flex-wrap gap-2">
-              {["Location: " + (district || "—") + ", " + state, "Source: Custom Input"].map(c => <span key={c} className="text-xs bg-muted px-3 py-1.5 rounded-full">{c}</span>)}
+              {["Location: " + (district || "—") + ", " + state, "Source: Custom Input"].map(
+                (c) => (
+                  <span key={c} className="text-xs bg-muted px-3 py-1.5 rounded-full">
+                    {c}
+                  </span>
+                ),
+              )}
             </div>
             <div className="flex flex-col md:flex-row gap-6 items-center">
               <GhostScoreGauge score={result.score} />
               <div className="flex-1 space-y-2">
-                {result.points.map((e, i) =>
-                  <div key={i} className="text-sm border-l-4 border-danger bg-danger/5 px-3 py-1.5 animate-in slide-in-from-left duration-300" style={{ delay: `${i * 100}ms` }}>⚠️ {e}</div>)}
+                {result.points.map((e, i) => (
+                  <div
+                    key={i}
+                    className="text-sm border-l-4 border-danger bg-danger/5 px-3 py-1.5 animate-in slide-in-from-left duration-300"
+                    style={{ delay: `${i * 100}ms` }}
+                  >
+                    ⚠️ {e}
+                  </div>
+                ))}
               </div>
             </div>
             <div className="bg-muted/50 p-4 rounded-xl text-sm italic text-muted-foreground">
               {result.summary}
             </div>
             <div className="bg-success/5 border border-success/20 rounded-xl p-4">
-              <div className="text-sm font-semibold text-success mb-2">Community Impact: If recovered, these funds could support:</div>
+              <div className="text-sm font-semibold text-success mb-2">
+                Community Impact: If recovered, these funds could support:
+              </div>
               <div className="grid grid-cols-3 gap-3 text-xs">
-                <div><div className="text-2xl font-bold text-success">30</div>classrooms</div>
-                <div><div className="text-2xl font-bold text-success">49</div>km of road</div>
-                <div><div className="text-2xl font-bold text-success">81</div>months PHC supply</div>
+                <div>
+                  <div className="text-2xl font-bold text-success">30</div>classrooms
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-success">49</div>km of road
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-success">81</div>months PHC supply
+                </div>
               </div>
             </div>
             <div className="flex gap-3">
-              <button className="bg-navy-deep text-white px-5 py-2.5 rounded-lg text-sm font-semibold inline-flex items-center gap-2"><Save className="w-4 h-4" /> Save to Database</button>
-              <button className="bg-saffron text-white px-5 py-2.5 rounded-lg text-sm font-semibold inline-flex items-center gap-2"><FileText className="w-4 h-4" /> Generate RTI</button>
+              <button className="bg-navy-deep text-white px-5 py-2.5 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
+                <Save className="w-4 h-4" /> Save to Database
+              </button>
+              <button className="bg-saffron text-white px-5 py-2.5 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
+                <FileText className="w-4 h-4" /> Generate RTI
+              </button>
               <span className="ml-auto self-center text-xs text-success flex items-center gap-1">
                 <span className="w-2 h-2 bg-success rounded-full animate-pulse" />
                 Live Gemini Analysis
