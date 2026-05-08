@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Bot, Send, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getUserId } from "@/lib/session";
+import { chatWithNagrikBot } from "@/lib/gemini";
 
 export function NagrikBotBubble() {
   const [open, setOpen] = useState(false);
@@ -10,16 +11,34 @@ export function NagrikBotBubble() {
   ]);
   const [input, setInput] = useState("");
 
+  const [loading, setLoading] = useState(false);
+
   const send = async () => {
-    if (!input.trim()) return;
-    const next = [...msgs, { role: "user", content: input }, { role: "assistant", content: "🔌 NagrikBot AI is being integrated. Your message has been saved — full Gemini responses coming soon." }];
-    setMsgs(next);
+    if (!input.trim() || loading) return;
+    
+    const userMsg = { role: "user", content: input };
+    const nextMsgs = [...msgs, userMsg];
+    setMsgs(nextMsgs);
     setInput("");
-    await supabase.from("nagrikbot_conversations").insert({
-      user_id: getUserId(),
-      messages: next,
-      module_context: "floating_bubble",
-    });
+    setLoading(true);
+
+    try {
+      const response = await chatWithNagrikBot({ messages: nextMsgs });
+      const assistantMsg = { role: "assistant", content: response };
+      const finalMsgs = [...nextMsgs, assistantMsg];
+      setMsgs(finalMsgs);
+      
+      await supabase.from("nagrikbot_conversations").insert({
+        user_id: getUserId(),
+        messages: finalMsgs,
+        module_context: "floating_bubble",
+      });
+    } catch (error) {
+      console.error(error);
+      setMsgs(m => [...m, { role: "assistant", content: "Sorry, I encountered an error. Please try again." }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,6 +62,11 @@ export function NagrikBotBubble() {
                 {m.content}
               </div>
             ))}
+            {loading && (
+              <div className="bg-muted px-3 py-2 rounded-lg max-w-[85%] text-sm italic text-muted-foreground animate-pulse">
+                NagrikBot is thinking...
+              </div>
+            )}
           </div>
           <div className="p-2 border-t flex gap-2">
             <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}

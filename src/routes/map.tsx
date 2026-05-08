@@ -40,7 +40,25 @@ function GhostMap() {
   const [view, setView] = useState<MapView>("ghost");
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportNote, setReportNote] = useState("");
   const mapRef = useRef<HTMLDivElement>(null);
+
+  const submitReport = async () => {
+    if (!selected || !reportNote.trim()) return;
+    const { error } = await supabase.from("citizen_reports").insert({
+      project_id: selected.id,
+      submitted_by: getUserId(),
+      note: reportNote,
+      verified: false
+    });
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Report submitted for verification!");
+      setShowReportDialog(false);
+      setReportNote("");
+    }
+  };
 
   useEffect(() => {
     supabase
@@ -450,13 +468,48 @@ function GhostMap() {
                     >
                       Full Details
                     </Link>
-                    <button className="border py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                    <button 
+                      onClick={() => setShowReportDialog(true)}
+                      className="border py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+                    >
                       <Camera className="w-3.5 h-3.5" /> Report
                     </button>
-                    <button className="border py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5">
+                    <button 
+                      onClick={() => window.print()}
+                      className="border py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+                    >
                       <Download className="w-3.5 h-3.5" /> Evidence
                     </button>
                   </div>
+
+                  {/* Report Dialog Overlay */}
+                  {showReportDialog && (
+                    <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+                      <div className="bg-card w-full max-w-sm rounded-xl p-5 shadow-elevated">
+                        <h3 className="font-bold mb-4">Submit Ground Report</h3>
+                        <textarea 
+                          value={reportNote}
+                          onChange={e => setReportNote(e.target.value)}
+                          placeholder="What did you see at the site?"
+                          className="w-full h-32 p-3 border rounded-lg text-sm mb-4 outline-none focus:ring-2 focus:ring-saffron"
+                        />
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => setShowReportDialog(false)}
+                            className="flex-1 border py-2 rounded-lg text-sm font-semibold"
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            onClick={submitReport}
+                            className="flex-1 bg-saffron text-white py-2 rounded-lg text-sm font-semibold"
+                          >
+                            Submit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Citizen Reports */}
                   <div>

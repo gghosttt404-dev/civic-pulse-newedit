@@ -32,13 +32,21 @@ function RTIHub() {
   const [issue, setIssue] = useState("");
   const [generated, setGenerated] = useState<any | null>(null);
   const [rtis, setRtis] = useState<any[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [draftText, setDraftText] = useState("");
 
   const load = () => supabase.from("rtis").select("*").order("generated_at", { ascending: false }).then(({ data }) => setRtis(data || []));
+  
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (generated) setDraftText(generated.body_english);
+  }, [generated]);
 
   const generate = async () => {
     const subject = `Information request — ${RTI_TYPES.find(t => t.v === type)?.title}`;
     const body = `Under Section 6(1) of the RTI Act, 2005, I, the undersigned citizen, request the following information from your office:\n\n${issue || `Details regarding ${type.toLowerCase()} matter in ${state}`}\n\n1) Date-wise expenditure statement.\n2) Copies of tender documents and contractor details.\n3) Site inspection / verification reports for the last 12 months.\n4) Geo-tagged photographic evidence of completion.\n5) Third-party quality audit reports if any.\n\nThe information is requested in English. Required application fee of ₹10 is enclosed by IPO.`;
+    
     const { data, error } = await supabase.from("rtis").insert({
       user_id: getUserId(),
       rti_type: type,
@@ -49,19 +57,52 @@ function RTIHub() {
       body_english: body,
       status: "DRAFTED",
     }).select().single();
+
     if (error) toast.error(error.message);
-    else { setGenerated(data); toast.success("RTI drafted by AI"); load(); }
+    else { 
+      setGenerated(data); 
+      toast.success("RTI drafted by AI"); 
+      load(); 
+    }
+  };
+
+  const updateRTI = async () => {
+    if (!generated) return;
+    const { error } = await supabase.from("rtis").update({ body_english: draftText }).eq("id", generated.id);
+    if (error) toast.error(error.message);
+    else { 
+      toast.success("Draft updated"); 
+      setEditing(false); 
+      load(); 
+    }
+  };
+
+  const markFiled = async () => {
+    if (!generated) return;
+    const { error } = await supabase.from("rtis").update({ status: "FILED", filed_at: new Date().toISOString() }).eq("id", generated.id);
+    if (error) toast.error(error.message);
+    else { 
+      toast.success("Marked as Filed!"); 
+      setGenerated(null); 
+      load(); 
+    }
+  };
+
+  const downloadPDF = () => {
+    window.print();
   };
 
   return (
     <AppShell>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">RTI Hub</h1>
-        <p className="text-muted-foreground mb-6">AI-drafted Right to Information applications in seconds.</p>
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto print:p-0">
+        <div className="print:hidden">
+          <h1 className="text-3xl font-bold mb-2">RTI Hub</h1>
+          <p className="text-muted-foreground mb-6">AI-drafted Right to Information applications in seconds.</p>
+        </div>
 
         <div className="grid lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-2 space-y-4">
-            <div className="bg-card border rounded-xl p-5 shadow-card">
+          <div className="lg:col-span-2 space-y-4 print:col-span-5">
+            <div className="bg-card border rounded-xl p-5 shadow-card print:hidden">
               <h2 className="font-bold mb-4">Generate New RTI</h2>
               <div className="grid grid-cols-2 gap-2 mb-4">
                 {RTI_TYPES.map(t => (
@@ -85,23 +126,37 @@ function RTIHub() {
             </div>
 
             {generated && (
-              <div className="bg-white border-2 border-saffron rounded-xl p-6 font-serif text-sm shadow-elevated">
-                <div className="text-xs text-muted-foreground mb-3">Generated Draft (editable)</div>
+              <div className="bg-white border-2 border-saffron rounded-xl p-6 font-serif text-sm shadow-elevated print:border-0 print:shadow-none print:p-0">
+                <div className="text-xs text-muted-foreground mb-3 print:hidden">Generated Draft (editable)</div>
                 <div className="font-semibold">To,</div>
                 <div>{generated.pio_name}</div>
                 <div>{generated.pio_address}</div>
                 <div className="my-3"><strong>Subject:</strong> {generated.subject_line}</div>
-                <div className="whitespace-pre-line text-xs leading-relaxed">{generated.body_english}</div>
-                <div className="flex gap-2 mt-4">
-                  <button className="text-xs bg-navy-deep text-white px-3 py-1.5 rounded">Edit</button>
-                  <button className="text-xs border px-3 py-1.5 rounded">Download PDF</button>
-                  <button className="text-xs bg-success text-white px-3 py-1.5 rounded">Mark as Filed</button>
+                
+                {editing ? (
+                  <textarea 
+                    value={draftText} 
+                    onChange={e => setDraftText(e.target.value)}
+                    className="w-full h-64 p-2 border rounded font-sans text-xs mb-3"
+                  />
+                ) : (
+                  <div className="whitespace-pre-line text-xs leading-relaxed">{draftText}</div>
+                )}
+
+                <div className="flex gap-2 mt-4 print:hidden">
+                  {editing ? (
+                    <button onClick={updateRTI} className="text-xs bg-saffron text-white px-3 py-1.5 rounded">Save Changes</button>
+                  ) : (
+                    <button onClick={() => setEditing(true)} className="text-xs bg-navy-deep text-white px-3 py-1.5 rounded">Edit</button>
+                  )}
+                  <button onClick={downloadPDF} className="text-xs border px-3 py-1.5 rounded">Download PDF</button>
+                  <button onClick={markFiled} className="text-xs bg-success text-white px-3 py-1.5 rounded">Mark as Filed</button>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="lg:col-span-3 space-y-3">
+          <div className="lg:col-span-3 space-y-3 print:hidden">
             <h2 className="font-bold">My RTIs ({rtis.length})</h2>
             {rtis.map(r => (
               <div key={r.id} className="bg-card border rounded-xl p-4 shadow-card">

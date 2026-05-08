@@ -1,4 +1,5 @@
 import { formatINR } from "@/lib/format";
+import { toast } from "sonner";
 
 interface CommunityImpactProps {
   lakhs: number;
@@ -34,7 +35,9 @@ export function CommunityImpact({ lakhs }: CommunityImpactProps) {
           icon="💊"
         />
       </div>
-      <button className="w-full mt-4 bg-success hover:bg-success/90 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-all active:scale-[0.98] shadow-md shadow-success/20">
+      <button 
+        onClick={() => toast.success("Proposal drafted! You can view it in the Reallocation Hub.")}
+        className="w-full mt-4 bg-success hover:bg-success/90 text-white px-4 py-2.5 rounded-lg text-xs font-bold transition-all active:scale-[0.98] shadow-md shadow-success/20">
         Generate Reallocation Proposal
       </button>
     </div>
