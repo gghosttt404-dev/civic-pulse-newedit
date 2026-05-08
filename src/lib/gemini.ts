@@ -20,7 +20,15 @@ export const analyzeClaim = createServerFn("POST", async (text: string) => {
     throw new Error("GOOGLE_API_KEY is not set");
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-1.5-flash",
+    safetySettings: [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+    ],
+  });
 
   const prompt = `
     Analyze the following infrastructure project claim or news snippet for potential "ghost projects" (projects that exist on paper/funds but not in reality) or corruption indicators.
@@ -60,43 +68,52 @@ export const chatWithNagrikBot = createServerFn("POST", async (payload: { messag
     return "I'm sorry, my API key is missing. Please check the environment variables.";
   }
 
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-  const systemPrompt = `
-    You are NagrikBot, a helpful AI assistant for NagrikAI (Civic Pulse).
-    Your goal is to help Indian citizens with:
-    1. Understanding government schemes (like PM-KISAN, Ayushman Bharat, etc.).
-    2. Drafting RTIs (Right to Information) for suspicious infrastructure projects.
-    3. Analyzing potential "ghost projects" (corruption where money is released but no work is done).
-    
-    Current context: ${payload.context || "General conversation"}
-    
-    Guidelines:
-    - Be polite, professional, and helpful.
-    - If asked about specific schemes, provide accurate details.
-    - If asked about a project, suggest generating an RTI if there's suspicion of corruption.
-    - Keep responses concise and focused.
-    - Use Indian English terms (Lakh, Crore, Panchayat).
-  `;
-
   try {
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+      ],
+    });
+
+    const systemPrompt = `
+      You are NagrikBot, a helpful AI assistant for NagrikAI (Civic Pulse).
+      Your goal is to help Indian citizens with:
+      1. Understanding government schemes (like PM-KISAN, Ayushman Bharat, etc.).
+      2. Drafting RTIs (Right to Information) for suspicious infrastructure projects.
+      3. Analyzing potential "ghost projects" (corruption where money is released but no work is done).
+      
+      Current context: ${payload.context || "General conversation"}
+      
+      Guidelines:
+      - Be polite, professional, and helpful.
+      - If asked about specific schemes, provide accurate details.
+      - If asked about a project, suggest generating an RTI if there's suspicion of corruption.
+      - Keep responses concise and focused.
+      - Use Indian English terms (Lakh, Crore, Panchayat).
+    `;
+
     const lastMsg = payload.messages[payload.messages.length - 1].content;
     const prompt = `${systemPrompt}\n\nUser: ${lastMsg}\n\nAssistant:`;
     
-    console.log("Sending prompt to Gemini:", lastMsg);
+    console.log("NagrikBot prompt:", lastMsg);
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text().trim();
     
     if (!text) {
-      console.warn("Gemini returned empty text, retrying with simpler prompt...");
-      const simpleResult = await model.generateContent(lastMsg);
-      return simpleResult.response.text().trim() || "I understood your message, but I'm having trouble generating a detailed response right now.";
+      return "I understood your message, but I'm having trouble generating a detailed response right now. Could you please rephrase?";
     }
 
     return text;
   } catch (error: any) {
     console.error("Gemini Chat Error Details:", error);
+    if (error.message?.includes("SAFETY")) {
+      return "I'm sorry, but I can't discuss that specific topic due to safety guidelines. How else can I help you with civic issues?";
+    }
     return `I encountered an error: ${error.message || "Unknown error"}. Please try again.`;
   }
 });
