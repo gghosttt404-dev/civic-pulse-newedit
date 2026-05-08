@@ -23,6 +23,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const loc = useLocation();
   const profile = useUserProfile();
   const [open, setOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const alerts = [
+    { id: 1, title: "New Ghost Project Flagged", desc: "Suspicious activity detected in Patna district.", time: "2m ago", unread: true },
+    { id: 2, title: "RTI Response Due", desc: "Your RTI for Ken River Bridge is due for response in 3 days.", time: "1h ago", unread: true },
+    { id: 3, title: "Grant Approved", desc: "Your PM-KISAN application has been verified.", time: "5h ago", unread: false },
+  ];
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -73,10 +80,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="h-14 bg-card border-b flex items-center px-4 gap-3 sticky top-0 z-30 print:hidden">
           <button onClick={() => setOpen(true)} className="lg:hidden"><Menu className="w-5 h-5" /></button>
           <div className="flex-1" />
-          <button className="relative p-2 rounded-md hover:bg-muted">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full" />
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="relative p-2 rounded-md hover:bg-muted transition"
+            >
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-danger rounded-full" />
+            </button>
+            
+            {notifOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-card border rounded-xl shadow-elevated z-50 overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="p-4 border-b flex justify-between items-center bg-muted/30">
+                  <span className="font-bold text-sm">Notifications</span>
+                  <button onClick={() => setNotifOpen(false)} className="text-xs text-saffron hover:underline">Mark all read</button>
+                </div>
+                <div className="max-h-[400px] overflow-y-auto">
+                  {alerts.map(a => (
+                    <div key={a.id} className={cn("p-4 border-b hover:bg-muted/50 transition cursor-pointer", a.unread && "bg-saffron/5 border-l-2 border-l-saffron")}>
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-xs font-bold">{a.title}</span>
+                        <span className="text-[10px] text-muted-foreground">{a.time}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">{a.desc}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-2 text-center border-t">
+                  <button className="text-xs text-muted-foreground hover:text-saffron transition">View all activity</button>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="text-sm text-muted-foreground hidden sm:block">{profile?.district}, {profile?.state}</div>
         </header>
         <main className="flex-1 min-w-0 print:p-0">{children}</main>
