@@ -38,7 +38,8 @@ function BotPage() {
 
     try {
       const response = await chatWithNagrikBot({ messages: nextMsgs });
-      const assistantMsg = { role: "assistant", content: response };
+      const cleanResponse = response || "I'm sorry, I couldn't generate a response. Please try again.";
+      const assistantMsg = { role: "assistant", content: cleanResponse };
       const finalMsgs = [...nextMsgs, assistantMsg];
       setMsgs(finalMsgs);
 
