@@ -1,16 +1,8 @@
 {
   "version": 2,
-  "installCommand": "npm ci || npm install",
-  "buildCommand": "npm run vercel-build",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist/client"
-      }
-    }
-  ],
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/client",
   "rewrites": [
     {
       "source": "/(.*)",
