@@ -34,8 +34,13 @@ export default async function (req, res) {
     const body = await response.arrayBuffer();
     res.end(Buffer.from(body));
   } catch (error) {
-    console.error('Server Error:', error);
+    console.error('Server Bridge Error:', error);
     res.statusCode = 500;
-    res.end('Internal Server Error');
+    res.setHeader('Content-Type', 'text/html');
+    res.end(`
+      <h1>Server Bridge Error</h1>
+      <p><strong>Message:</strong> ${error.message}</p>
+      <pre>${error.stack}</pre>
+    `);
   }
 }
