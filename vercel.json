@@ -5,8 +5,12 @@
   "outputDirectory": "dist/client",
   "rewrites": [
     {
+      "source": "/assets/(.*)",
+      "destination": "/assets/$1"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/api/handler"
     }
   ]
 }
