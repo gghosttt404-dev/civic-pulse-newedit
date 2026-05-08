@@ -124,7 +124,6 @@ function GhostMap() {
         const nextMap = new Map(mapRef.current, {
           center: { lat: 22.9734, lng: 78.6569 },
           zoom: 5,
-          mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || undefined,
           disableDefaultUI: true,
           zoomControl: true,
           fullscreenControl: true,
