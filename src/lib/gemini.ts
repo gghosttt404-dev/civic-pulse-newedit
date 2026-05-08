@@ -1,7 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || "");
+const getApiKey = () => {
+  return process.env.GOOGLE_API_KEY || process.env.VITE_GOOGLE_API_KEY || "";
+};
+
+const genAI = new GoogleGenerativeAI(getApiKey());
 
 export type AnalysisResult = {
   score: number;
@@ -11,7 +15,8 @@ export type AnalysisResult = {
 };
 
 export const analyzeClaim = createServerFn("POST", async (text: string) => {
-  if (!process.env.GOOGLE_API_KEY) {
+  const apiKey = getApiKey();
+  if (!apiKey) {
     throw new Error("GOOGLE_API_KEY is not set");
   }
 
@@ -35,6 +40,7 @@ export const analyzeClaim = createServerFn("POST", async (text: string) => {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const jsonStr = response.text().replace(/```json|```/g, "").trim();
+    if (!jsonStr) throw new Error("Empty response from Gemini");
     return JSON.parse(jsonStr) as AnalysisResult;
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
@@ -48,8 +54,10 @@ export const analyzeClaim = createServerFn("POST", async (text: string) => {
 });
 
 export const chatWithNagrikBot = createServerFn("POST", async (payload: { messages: { role: string; content: string }[]; context?: string }) => {
-  if (!process.env.GOOGLE_API_KEY) {
-    throw new Error("GOOGLE_API_KEY is not set");
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    console.error("SERVER ERROR: GOOGLE_API_KEY is missing");
+    return "I'm sorry, my API key is missing. Please check the environment variables.";
   }
 
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -57,7 +65,7 @@ export const chatWithNagrikBot = createServerFn("POST", async (payload: { messag
   const systemPrompt = `
     You are NagrikBot, a helpful AI assistant for NagrikAI (Civic Pulse).
     Your goal is to help Indian citizens with:
-    1. Understanding government schemes.
+    1. Understanding government schemes (like PM-KISAN, Ayushman Bharat, etc.).
     2. Drafting RTIs (Right to Information) for suspicious infrastructure projects.
     3. Analyzing potential "ghost projects" (corruption where money is released but no work is done).
     
@@ -65,31 +73,30 @@ export const chatWithNagrikBot = createServerFn("POST", async (payload: { messag
     
     Guidelines:
     - Be polite, professional, and helpful.
-    - If asked about specific schemes, provide accurate details based on Indian government data.
+    - If asked about specific schemes, provide accurate details.
     - If asked about a project, suggest generating an RTI if there's suspicion of corruption.
     - Keep responses concise and focused.
-    - Use Indian English and common terms (like "Lakh", "Crore", "Panchayat").
+    - Use Indian English terms (Lakh, Crore, Panchayat).
   `;
 
   try {
-    const chat = model.startChat({
-      history: payload.messages.slice(0, -1).map(m => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      })),
-      generationConfig: {
-        maxOutputTokens: 500,
-      },
-    });
-
     const lastMsg = payload.messages[payload.messages.length - 1].content;
-    const prompt = `${systemPrompt}\n\nUser: ${lastMsg}`;
+    const prompt = `${systemPrompt}\n\nUser: ${lastMsg}\n\nAssistant:`;
     
+    console.log("Sending prompt to Gemini:", lastMsg);
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    return response.text();
-  } catch (error) {
-    console.error("Gemini Chat Error:", error);
-    return "I'm sorry, I'm having trouble connecting to my AI brain right now. Please try again in a moment.";
+    const text = response.text().trim();
+    
+    if (!text) {
+      console.warn("Gemini returned empty text, retrying with simpler prompt...");
+      const simpleResult = await model.generateContent(lastMsg);
+      return simpleResult.response.text().trim() || "I understood your message, but I'm having trouble generating a detailed response right now.";
+    }
+
+    return text;
+  } catch (error: any) {
+    console.error("Gemini Chat Error Details:", error);
+    return `I encountered an error: ${error.message || "Unknown error"}. Please try again.`;
   }
 });
