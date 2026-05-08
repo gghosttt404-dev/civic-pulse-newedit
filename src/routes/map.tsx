@@ -38,11 +38,11 @@ function GhostMap() {
       version: "weekly",
     });
 
-    loader.load().then((google) => {
-      const newMap = new google.maps.Map(mapRef.current!, {
+    loader.importLibrary("maps").then(({ Map }) => {
+      const newMap = new Map(mapRef.current!, {
         center: { lat: 20.5937, lng: 78.9629 }, // Center of India
         zoom: 5,
-        mapId: "f9d6a3b2b4b5b6b7", // Optional: your map style ID
+        mapId: "f9d6a3b2b4b5b6b7",
         disableDefaultUI: true,
         styles: [
           { elementType: "geometry", stylers: [{ color: "#1a1c2c" }] },
@@ -66,23 +66,21 @@ function GhostMap() {
   useEffect(() => {
     if (!map || !filtered.length) return;
 
-    // Clear existing markers if any (implementation omitted for brevity, but map handles them)
-    filtered.forEach(p => {
-      const marker = new google.maps.Marker({
-        position: { lat: p.lat, lng: p.lng },
-        map: map,
-        title: p.name,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          fillColor: ghostScoreColor(p.ghost_score),
-          fillOpacity: 0.8,
-          strokeWeight: 2,
-          strokeColor: "#ffffff",
-          scale: p.severity === "CRITICAL" ? 10 : 7,
-        },
-      });
+    const loader = new Loader({
+      apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+      version: "weekly",
+    });
 
-      marker.addListener("click", () => setSelected(p));
+    loader.importLibrary("marker").then(({ Marker }) => {
+      filtered.forEach(p => {
+        const marker = new Marker({
+          position: { lat: p.lat, lng: p.lng },
+          map: map,
+          title: p.name,
+        });
+
+        marker.addListener("click", () => setSelected(p));
+      });
     });
   }, [map, filtered]);
 
