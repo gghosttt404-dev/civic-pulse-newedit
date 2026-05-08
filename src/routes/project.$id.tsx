@@ -26,6 +26,8 @@ function ProjectDetail() {
   const { id } = useParams({ from: "/project/$id" });
   const [p, setP] = useState<Project | null>(null);
   const [reports, setReports] = useState<any[]>([]);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportNote, setReportNote] = useState("");
 
   useEffect(() => {
     supabase
@@ -67,6 +69,23 @@ function ProjectDetail() {
     }
   };
 
+  const submitReport = async () => {
+    if (!p || !reportNote.trim()) return;
+    const { error } = await supabase.from("citizen_reports").insert({
+      project_id: p.id,
+      submitted_by: getUserId(),
+      note: reportNote,
+      verified: false
+    });
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Report submitted for verification!");
+      setShowReportDialog(false);
+      setReportNote("");
+      supabase.from("citizen_reports").select("*").eq("project_id", id).then(({ data }) => setReports(data || []));
+    }
+  };
+
   if (!p)
     return (
       <AppShell>
@@ -77,8 +96,8 @@ function ProjectDetail() {
   const lakhs = Number(p.sanctioned_amount);
   return (
     <AppShell>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-        <nav className="flex items-center text-sm text-muted-foreground gap-1.5">
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6 print:p-0">
+        <nav className="flex items-center text-sm text-muted-foreground gap-1.5 print:hidden">
           <Link to="/map" className="hover:text-foreground">
             Map
           </Link>
@@ -88,8 +107,7 @@ function ProjectDetail() {
           <span className="text-foreground">{p.name}</span>
         </nav>
 
-        <div className="grid lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden shadow-elevated bg-card relative">
-          {/* LEFT panel */}
+        <div className="grid lg:grid-cols-2 gap-0 rounded-2xl overflow-hidden shadow-elevated bg-card relative print:shadow-none print:border">
           <div className="bg-navy-deep text-white p-7">
             <div className="text-xs uppercase tracking-wider text-white/60 mb-3">
               Government Claims
@@ -101,10 +119,7 @@ function ProjectDetail() {
             <div className="text-5xl font-bold text-saffron mb-1">{formatINR(lakhs)}</div>
             <div className="text-xs text-white/50 mb-6">Sanctioned amount</div>
             <dl className="space-y-3 text-sm">
-              <Row
-                k="Project type"
-                v={<span className="bg-white/10 px-2 py-0.5 rounded">{p.project_type}</span>}
-              />
+              <Row k="Project type" v={<span className="bg-white/10 px-2 py-0.5 rounded">{p.project_type}</span>} />
               <Row k="Executing agency" v={p.executing_agency} />
               <Row k="Fund release" v={p.release_date} />
               <Row k="Claimed completion" v={p.claimed_completion_date} />
@@ -112,23 +127,17 @@ function ProjectDetail() {
             </dl>
           </div>
 
-          {/* CENTER gauge */}
-          <div className="absolute top-7 left-1/2 -translate-x-1/2 hidden lg:block z-10">
+          <div className="absolute top-7 left-1/2 -translate-x-1/2 hidden lg:block z-10 print:hidden">
             <div className="bg-card rounded-full p-4 shadow-elevated">
               <GhostScoreGauge score={p.ghost_score} size={140} />
             </div>
           </div>
 
-          {/* RIGHT panel */}
           <div className="bg-[oklch(0.15_0.02_250)] text-white p-7">
-            <div className="text-xs uppercase tracking-wider text-white/60 mb-3">
-              🛰️ Satellite Reality
-            </div>
+            <div className="text-xs uppercase tracking-wider text-white/60 mb-3">🛰️ Satellite Reality</div>
             <div className="rounded-lg overflow-hidden mb-4 relative">
               <img src={p.satellite_image_url} alt="" className="w-full h-48 object-cover" />
-              <div className="absolute top-3 left-3 bg-saffron text-white text-xs px-2 py-1 rounded">
-                AI Analysis Complete
-              </div>
+              <div className="absolute top-3 left-3 bg-saffron text-white text-xs px-2 py-1 rounded">AI Analysis Complete</div>
             </div>
             <p className="text-sm text-white/80 leading-relaxed mb-4">{p.gemini_analysis}</p>
             <div className="flex items-center gap-2">
@@ -146,51 +155,54 @@ function ProjectDetail() {
           </div>
         </div>
 
-        {/* Mobile gauge */}
-        <div className="flex justify-center lg:hidden">
+        <div className="flex justify-center lg:hidden print:hidden">
           <GhostScoreGauge score={p.ghost_score} />
         </div>
 
-        {/* Evidence */}
         <div className="bg-card rounded-2xl p-6 shadow-card">
           <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-danger" /> Evidence Points
           </h2>
           <ul className="space-y-2">
             {(p.evidence_points as string[]).map((e, i) => (
-              <li key={i} className="border-l-4 border-danger bg-danger/5 px-4 py-2.5 text-sm">
-                ⚠️ {e}
-              </li>
+              <li key={i} className="border-l-4 border-danger bg-danger/5 px-4 py-2.5 text-sm">⚠️ {e}</li>
             ))}
           </ul>
         </div>
 
-        {/* Community Impact */}
-        <CommunityImpact lakhs={lakhs} />
-
-        {/* Actions */}
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={generateRTI}
-            className="bg-saffron text-white px-5 py-3 rounded-lg text-sm font-semibold inline-flex items-center gap-2"
-          >
-            <FileText className="w-4 h-4" /> Generate RTI
-          </button>
-          <button className="bg-card border px-5 py-3 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
-            <Camera className="w-4 h-4" /> Submit Ground Report
-          </button>
-          <button className="bg-card border px-5 py-3 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
-            <Download className="w-4 h-4" /> Download Evidence PDF
-          </button>
-          <button className="bg-card border px-3 py-3 rounded-lg">
-            <Share2 className="w-4 h-4" />
-          </button>
-          <span className="ml-auto self-center text-xs text-saffron border border-saffron/30 px-2 py-1 rounded">
-            🔌 AI Integration Ready
-          </span>
+        <div className="print:hidden">
+          <CommunityImpact lakhs={lakhs} />
         </div>
 
-        {/* Citizen reports */}
+        <div className="flex flex-wrap gap-3 print:hidden">
+          <button onClick={generateRTI} className="bg-saffron text-white px-5 py-3 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
+            <FileText className="w-4 h-4" /> Generate RTI
+          </button>
+          <button onClick={() => setShowReportDialog(true)} className="bg-card border px-5 py-3 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
+            <Camera className="w-4 h-4" /> Submit Ground Report
+          </button>
+          <button onClick={() => window.print()} className="bg-card border px-5 py-3 rounded-lg text-sm font-semibold inline-flex items-center gap-2">
+            <Download className="w-4 h-4" /> Download Evidence PDF
+          </button>
+          <button onClick={() => navigator.share({ title: p.name, text: p.gemini_analysis, url: window.location.href })} className="bg-card border px-3 py-3 rounded-lg">
+            <Share2 className="w-4 h-4" />
+          </button>
+          <span className="ml-auto self-center text-xs text-saffron border border-saffron/30 px-2 py-1 rounded">🔌 AI Integration Ready</span>
+        </div>
+
+        {showReportDialog && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-card w-full max-w-sm rounded-xl p-6 shadow-elevated">
+              <h3 className="font-bold text-lg mb-4">Submit Ground Report</h3>
+              <textarea value={reportNote} onChange={e => setReportNote(e.target.value)} placeholder="What did you see?" className="w-full h-32 p-3 border rounded-lg text-sm mb-4 outline-none focus:ring-2 focus:ring-saffron" />
+              <div className="flex gap-2">
+                <button onClick={() => setShowReportDialog(false)} className="flex-1 border py-2.5 rounded-lg text-sm font-semibold">Cancel</button>
+                <button onClick={submitReport} className="flex-1 bg-saffron text-white py-2.5 rounded-lg text-sm font-semibold">Submit</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-card rounded-2xl p-6 shadow-card">
           <h2 className="font-bold text-lg mb-4">Citizen Ground Reports</h2>
           {reports.length === 0 ? (
@@ -201,16 +213,9 @@ function ProjectDetail() {
           ) : (
             <div className="grid md:grid-cols-3 gap-3">
               {reports.map((r) => (
-                <div key={r.id} className="border rounded-lg overflow-hidden">
-                  {r.photo_url && (
-                    <img src={r.photo_url} alt="" className="w-full h-32 object-cover" />
-                  )}
-                  <div className="p-3 text-xs">
-                    <div>{r.note}</div>
-                    <div className="text-muted-foreground mt-1">
-                      {new Date(r.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
+                <div key={r.id} className="border rounded-lg overflow-hidden p-3 text-xs">
+                  <div>{r.note}</div>
+                  <div className="text-muted-foreground mt-1">{new Date(r.created_at).toLocaleDateString()}</div>
                 </div>
               ))}
             </div>
