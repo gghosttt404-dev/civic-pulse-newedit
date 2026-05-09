@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Sparkles, ExternalLink, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+import { useUserProfile } from "@/lib/session";
 
 export const Route = createFileRoute("/grants")({ component: Grants });
 
@@ -14,6 +15,8 @@ const MOCK_SCHEMES = [
     benefit_value: "₹6,000/year",
     eligibility_summary: "Income support to all landholding farmers' families in the country to supplement their financial needs.",
     match_score: 0.95,
+    states: ["Karnataka", "Bihar", "Uttar Pradesh", "Maharashtra"],
+    max_income: 500000,
     application_url: "https://pmkisan.gov.in"
   },
   {
@@ -24,6 +27,8 @@ const MOCK_SCHEMES = [
     benefit_value: "₹1.20 Lakh",
     eligibility_summary: "Financial assistance for construction of pucca houses for all houseless and those living in dilapidated houses.",
     match_score: 0.88,
+    states: ["Karnataka", "Bihar", "Jharkhand"],
+    max_income: 300000,
     application_url: "https://pmayg.nic.in"
   },
   {
@@ -34,6 +39,8 @@ const MOCK_SCHEMES = [
     benefit_value: "₹5 Lakh/Family/Year",
     eligibility_summary: "Health insurance cover for secondary and tertiary care hospitalization to over 10.74 crore poor families.",
     match_score: 0.92,
+    states: "ALL",
+    max_income: 250000,
     application_url: "https://pmjay.gov.in"
   },
   {
@@ -44,6 +51,8 @@ const MOCK_SCHEMES = [
     benefit_value: "100 Days Guaranteed Work",
     eligibility_summary: "Enhancing livelihood security by providing at least 100 days of guaranteed wage employment.",
     match_score: 0.85,
+    states: "ALL",
+    max_income: 150000,
     application_url: "https://nrega.nic.in"
   },
   {
@@ -54,6 +63,8 @@ const MOCK_SCHEMES = [
     benefit_value: "₹1,200/month + Admission fees",
     eligibility_summary: "Scholarships for students from minority communities whose parental annual income is less than ₹2 Lakh.",
     match_score: 0.98,
+    states: "ALL",
+    max_income: 200000,
     application_url: "https://scholarships.gov.in"
   }
 ];
@@ -67,7 +78,21 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 function Grants() {
+  const profile = useUserProfile();
   const [expanded, setExpanded] = useState<string | null>(null);
+
+  const filteredSchemes = useMemo(() => {
+    if (!profile) return MOCK_SCHEMES;
+    
+    // Convert profile income string (e.g. "Below ₹1 Lakh") to number
+    const incomeNum = profile.income?.includes("Lakh") ? 100000 : 500000;
+
+    return MOCK_SCHEMES.filter(s => {
+      const stateMatch = s.states === "ALL" || s.states.includes(profile.state);
+      const incomeMatch = incomeNum <= s.max_income;
+      return stateMatch && incomeMatch;
+    });
+  }, [profile]);
 
   return (
     <AppShell>
@@ -80,71 +105,78 @@ function Grants() {
             </div>
             <h1 className="text-3xl lg:text-4xl font-black mb-3">Your Welfare Dashboard</h1>
             <p className="text-white/70 max-w-2xl text-sm leading-relaxed">
-              Matching your profile <span className="text-white font-bold">(Age 34, Karnataka, Income &lt; 2L)</span> against <span className="text-white font-bold">450+ central & state schemes</span>.
+              Matching your profile <span className="text-white font-bold">({profile?.state || "India"}, {profile?.income || "General Profile"})</span> against <span className="text-white font-bold">450+ central & state schemes</span>.
             </p>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-4">
-          {MOCK_SCHEMES.map((s) => (
-            <div key={s.id} className="bg-card rounded-xl border-2 border-transparent hover:border-saffron/30 p-6 shadow-card transition-all group">
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div>
-                  <span className={`text-[10px] font-black px-2 py-1 rounded border ${CAT_COLORS[s.category]}`}>
-                    {s.category}
-                  </span>
-                  <h3 className="font-bold text-lg mt-3 leading-tight group-hover:text-saffron transition-colors">{s.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-1 font-medium">{s.ministry}</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-black text-navy-deep">{s.benefit_value}</div>
-                  <div className="text-[10px] font-bold text-success flex items-center justify-end gap-1 mt-1">
-                    <CheckCircle2 className="w-3 h-3" /> MATCHED
+        {filteredSchemes.length > 0 ? (
+          <div className="grid lg:grid-cols-2 gap-4">
+            {filteredSchemes.map((s) => (
+              <div key={s.id} className="bg-card rounded-xl border-2 border-transparent hover:border-saffron/30 p-6 shadow-card transition-all group">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <span className={`text-[10px] font-black px-2 py-1 rounded border ${CAT_COLORS[s.category]}`}>
+                      {s.category}
+                    </span>
+                    <h3 className="font-bold text-lg mt-3 leading-tight group-hover:text-saffron transition-colors">{s.name}</h3>
+                    <p className="text-xs text-muted-foreground mt-1 font-medium">{s.ministry}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-black text-navy-deep">{s.benefit_value}</div>
+                    <div className="text-[10px] font-bold text-success flex items-center justify-end gap-1 mt-1">
+                      <CheckCircle2 className="w-3 h-3" /> MATCHED
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="mb-6">
-                <div className="flex justify-between text-xs font-bold mb-2">
-                  <span className="text-muted-foreground">Match Confidence</span>
-                  <span className="text-saffron">{s.match_score * 100}%</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-saffron" style={{ width: `${s.match_score * 100}%` }} />
-                </div>
-              </div>
-
-              <button 
-                onClick={() => setExpanded(expanded === s.id ? null : s.id)}
-                className="w-full flex items-center justify-between text-xs font-bold text-muted-foreground hover:text-navy-deep py-2 px-3 bg-muted/50 rounded-lg mb-4 transition-colors"
-              >
-                Eligibility & Documentation 
-                {expanded === s.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-
-              {expanded === s.id && (
-                <div className="bg-muted/30 p-4 rounded-lg mb-4 animate-in slide-in-from-top-2 duration-200">
-                  <p className="text-xs leading-relaxed text-muted-foreground mb-3">{s.eligibility_summary}</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="text-[10px] font-bold text-navy-deep">✓ Aadhaar Card</div>
-                    <div className="text-[10px] font-bold text-navy-deep">✓ Bank Account</div>
-                    <div className="text-[10px] font-bold text-navy-deep">✓ Income Certificate</div>
-                    <div className="text-[10px] font-bold text-navy-deep">✓ Resident Proof</div>
+                <div className="mb-6">
+                  <div className="flex justify-between text-xs font-bold mb-2">
+                    <span className="text-muted-foreground">Match Confidence</span>
+                    <span className="text-saffron">{s.match_score * 100}%</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-saffron" style={{ width: `${s.match_score * 100}%` }} />
                   </div>
                 </div>
-              )}
 
-              <a 
-                href={s.application_url}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full bg-navy-deep text-white py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-saffron transition-colors"
-              >
-                Start Application <ExternalLink className="w-4 h-4" />
-              </a>
-            </div>
-          ))}
-        </div>
+                <button 
+                  onClick={() => setExpanded(expanded === s.id ? null : s.id)}
+                  className="w-full flex items-center justify-between text-xs font-bold text-muted-foreground hover:text-navy-deep py-2 px-3 bg-muted/50 rounded-lg mb-4 transition-colors"
+                >
+                  Eligibility & Documentation 
+                  {expanded === s.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+
+                {expanded === s.id && (
+                  <div className="bg-muted/30 p-4 rounded-lg mb-4 animate-in slide-in-from-top-2 duration-200">
+                    <p className="text-xs leading-relaxed text-muted-foreground mb-3">{s.eligibility_summary}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="text-[10px] font-bold text-navy-deep">✓ Aadhaar Card</div>
+                      <div className="text-[10px] font-bold text-navy-deep">✓ Bank Account</div>
+                      <div className="text-[10px] font-bold text-navy-deep">✓ Income Certificate</div>
+                      <div className="text-[10px] font-bold text-navy-deep">✓ Resident Proof</div>
+                    </div>
+                  </div>
+                )}
+
+                <a 
+                  href={s.application_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full bg-navy-deep text-white py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-saffron transition-colors"
+                >
+                  Start Application <ExternalLink className="w-4 h-4" />
+                </a>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-24 bg-card border rounded-2xl">
+            <p className="text-muted-foreground">No matching schemes found for your current profile.</p>
+            <Link to="/" className="text-saffron font-bold text-sm mt-4 inline-block hover:underline">Update Profile →</Link>
+          </div>
+        )}
       </div>
     </AppShell>
   );

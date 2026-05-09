@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useState } from "react";
-import { Trophy, Plus, CheckCircle2, TrendingUp, Users } from "lucide-react";
+import { Trophy, Plus, CheckCircle2, TrendingUp, Users, X, Send } from "lucide-react";
 import { formatINR } from "@/lib/format";
 
 export const Route = createFileRoute("/community")({ component: Community });
@@ -12,7 +12,7 @@ const MOCK_PROPOSALS = [
     title: "Solar Street Lights Installation",
     district: "Mysuru",
     state: "Karnataka",
-    recovered_amount: 1.2, // In Crores
+    recovered_amount: 1.2,
     status: "VOTING",
     proposed_use: [
       { title: "50 Solar Poles for Main Road", cost: 0.8 },
@@ -46,41 +46,27 @@ const MOCK_PROPOSALS = [
     ],
     votes: 1205
   },
-  {
-    id: "prop-4",
-    title: "Anganwadi Modernization",
-    district: "Ranchi",
-    state: "Jharkhand",
-    recovered_amount: 0.95,
-    status: "VOTING",
-    proposed_use: [
-      { title: "E-Learning Kits", cost: 0.45 },
-      { title: "Building Repairs", cost: 0.5 }
-    ],
-    votes: 215
-  },
-  {
-    id: "prop-5",
-    title: "Primary Health Center Equipment",
-    district: "Udaipur",
-    state: "Rajasthan",
-    recovered_amount: 5.2,
-    status: "APPROVED",
-    proposed_use: [
-      { title: "X-Ray & Lab Upgrade", cost: 3.0 },
-      { title: "Emergency Ambulance", cost: 2.2 }
-    ],
-    votes: 764
-  }
 ];
 
 function Community() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleSubmit = (e: any) => {
+    e.preventDefault();
+    setSubmitted(true);
+    setTimeout(() => {
+      setIsModalOpen(false);
+      setSubmitted(false);
+    }, 2000);
+  };
+
   return (
     <AppShell>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-black mb-2">Community Recovery Dashboard</h1>
+            <h1 className="text-3xl font-black mb-2">Community Recovery</h1>
             <p className="text-muted-foreground max-w-xl">Redirecting "Ghost Funds" from stalled projects into real community infrastructure.</p>
           </div>
           <div className="flex gap-4">
@@ -93,8 +79,11 @@ function Community() {
                 <p className="text-lg font-black text-navy-deep">₹13.65 Cr</p>
               </div>
             </div>
-            <button className="bg-success text-white px-6 py-4 rounded-xl font-black text-sm flex items-center gap-2 shadow-lg hover:shadow-success/20 transition-all">
-              <Plus className="w-5 h-5" /> NEW PROPOSAL
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="bg-success text-white px-6 py-4 rounded-xl font-black text-sm flex items-center gap-2 shadow-lg hover:shadow-success/20 transition-all active:scale-95"
+            >
+              <Plus className="w-5 h-5" /> CREATE PROPOSAL
             </button>
           </div>
         </div>
@@ -106,13 +95,9 @@ function Community() {
           <div className="grid lg:grid-cols-2 gap-6">
             {MOCK_PROPOSALS.map((p) => (
               <div key={p.id} className="bg-card border-2 border-transparent hover:border-success/30 rounded-2xl p-6 shadow-card transition-all relative overflow-hidden group">
-                <div className={`absolute top-0 right-0 w-32 h-32 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity ${p.status === "COMPLETED" ? "text-success" : "text-saffron"}`}>
-                   <TrendingUp className="w-full h-full -rotate-12 translate-x-8 -translate-y-8" />
-                </div>
-                
                 <div className="flex items-start justify-between mb-6">
                   <div>
-                    <span className={`text-[9px] font-black px-2 py-1 rounded tracking-widest ${p.status === "COMPLETED" ? "bg-success text-white" : (p.status === "APPROVED" ? "bg-navy-deep text-white" : "bg-saffron text-white")}`}>
+                    <span className={`text-[9px] font-black px-2 py-1 rounded tracking-widest ${p.status === "COMPLETED" ? "bg-success text-white" : "bg-saffron text-white"}`}>
                       {p.status}
                     </span>
                     <h3 className="font-black text-xl mt-3 leading-tight">{p.title}</h3>
@@ -128,7 +113,7 @@ function Community() {
                   {p.proposed_use.map((use, idx) => (
                     <div key={idx} className="bg-muted/50 p-3 rounded-xl flex justify-between items-center">
                       <span className="text-xs font-bold text-navy-deep">{use.title}</span>
-                      <span className="text-xs font-black text-muted-foreground">₹{use.recovered_amount || use.cost} Cr</span>
+                      <span className="text-xs font-black text-muted-foreground">₹{use.cost} Cr</span>
                     </div>
                   ))}
                 </div>
@@ -146,19 +131,51 @@ function Community() {
           </div>
         </section>
 
-        <section className="bg-success/5 border-2 border-success/20 rounded-2xl p-8 text-center relative overflow-hidden">
-          <div className="relative z-10">
-            <Trophy className="w-12 h-12 text-success mx-auto mb-4" />
-            <h2 className="font-black text-2xl mb-2 text-navy-deep">Recovery Success Stories</h2>
-            <p className="text-muted-foreground max-w-lg mx-auto mb-6 text-sm font-medium">When a proposal gets implemented using recovered funds, it joins our wall of fame.</p>
-            <div className="inline-block bg-white border-2 border-success/30 px-6 py-3 rounded-full font-black text-success text-sm shadow-sm">
-              3 Projects Successfully Reallocated in 2024
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-card w-full max-w-lg rounded-2xl shadow-elevated overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b flex items-center justify-between bg-navy-deep text-white">
+                <h2 className="font-black text-xl">New Recovery Proposal</h2>
+                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full"><X className="w-6 h-6" /></button>
+              </div>
+              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                {submitted ? (
+                  <div className="py-12 text-center space-y-4">
+                    <div className="w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto">
+                      <CheckCircle2 className="w-10 h-10" />
+                    </div>
+                    <h3 className="font-bold text-xl">Proposal Submitted!</h3>
+                    <p className="text-muted-foreground text-sm">Your proposal is being reviewed for legal validity.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase text-muted-foreground">Proposal Title</label>
+                      <input required placeholder="e.g. Solar Power for District Hospital" className="w-full p-3 bg-muted rounded-xl outline-none focus:ring-2 focus:ring-saffron" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase text-muted-foreground">Target District</label>
+                        <input required placeholder="District Name" className="w-full p-3 bg-muted rounded-xl outline-none focus:ring-2 focus:ring-saffron" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-black uppercase text-muted-foreground">Estimated Cost (Cr)</label>
+                        <input required type="number" step="0.1" placeholder="Amount in Crores" className="w-full p-3 bg-muted rounded-xl outline-none focus:ring-2 focus:ring-saffron" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black uppercase text-muted-foreground">Detailed Description</label>
+                      <textarea required rows={4} placeholder="How will this fund be used?" className="w-full p-3 bg-muted rounded-xl outline-none focus:ring-2 focus:ring-saffron resize-none" />
+                    </div>
+                    <button type="submit" className="w-full bg-saffron text-white py-4 rounded-xl font-black flex items-center justify-center gap-2 shadow-lg shadow-saffron/20 hover:bg-saffron/90 transition-all">
+                      SUBMIT FOR VOTING <Send className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
+              </form>
             </div>
           </div>
-          <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
-            <CheckCircle2 className="w-96 h-96 -rotate-12 -translate-x-1/2 -translate-y-1/2" />
-          </div>
-        </section>
+        )}
       </div>
     </AppShell>
   );
