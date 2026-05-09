@@ -9,6 +9,7 @@ import { NagrikBotBubble } from "./NagrikBotBubble";
 
 const NAV = [
   { to: "/dashboard", icon: Home, label: "Home" },
+  { to: "/map", icon: Map, label: "Heatmap" },
   { to: "/tracker", icon: Radio, label: "Tracker" },
   { to: "/analyze", icon: Search, label: "Integrity" },
   { to: "/rti", icon: FileText, label: "RTI Hub" },
