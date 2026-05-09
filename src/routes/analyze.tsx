@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Bot,
   FileSearch,
@@ -196,13 +196,20 @@ function Analyze() {
               "{result.summary}"
             </div>
 
-            <div className="grid grid-cols-2 gap-4 pt-4">
-              <button className="bg-navy-deep text-white py-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 hover:bg-navy-deep/90 transition-all shadow-lg active:scale-95">
+            <div className="grid grid-cols-2 gap-4 pt-4 no-print">
+              <button 
+                onClick={() => window.print()}
+                className="bg-navy-deep text-white py-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 hover:bg-navy-deep/90 transition-all shadow-lg active:scale-95"
+              >
                 <Save className="w-4 h-4" /> EXPORT REPORT
               </button>
-              <button className="bg-saffron text-white py-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 hover:bg-saffron/90 transition-all shadow-lg shadow-saffron/20 active:scale-95">
+              <Link 
+                to="/rti"
+                search={{ project: text }}
+                className="bg-saffron text-white py-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 hover:bg-saffron/90 transition-all shadow-lg shadow-saffron/20 active:scale-95"
+              >
                 <FileText className="w-4 h-4" /> GENERATE LEGAL RTI
-              </button>
+              </Link>
             </div>
           </div>
         )}
