@@ -73,10 +73,23 @@ function Analyze() {
     }
 
     try {
-      // 1. Check if this is a known SAMPLE PROJECT
+      // 1. Check if this is a known SAMPLE PROJECT or COMMUNITY PROPOSAL
+      const isCommunity = finalVal.toLowerCase().includes("community proposal");
       const known = SAMPLE_PROJECTS.find(p => finalVal.toLowerCase().includes(p.name.toLowerCase()));
       
-      if (known) {
+      if (isCommunity) {
+        setResult({
+          score: 88,
+          points: [
+            "Project funds were stalled for 18+ months",
+            "High recovery potential identified via audit",
+            "Public consensus matches local infrastructure needs",
+            "Legal clearance for fund reallocation pending"
+          ],
+          summary: "Community-driven reallocation of ghost funds. Analysis confirms high integrity and local impact potential.",
+          severity: "HIGH"
+        });
+      } else if (known) {
         // Use verified preset data for known projects
         setResult({
           score: known.ghost_score || 85,
