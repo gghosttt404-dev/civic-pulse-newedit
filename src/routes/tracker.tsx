@@ -124,6 +124,11 @@ function Tracker() {
                 </div>
                 <Link 
                   to="/analyze" 
+                  search={{ 
+                    text: `Project: ${p.name}\nDistrict: ${p.district}\nState: ${p.state}\nSanctioned: ${formatINR(p.sanctioned_amount)}\nCompletion: ${p.completion_pct}%`,
+                    state: p.state,
+                    district: p.district
+                  }}
                   className="bg-navy-deep text-white text-xs font-black px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-saffron transition-all"
                 >
                   ANALYSE CLAIM <ArrowRight className="w-3 h-3" />
