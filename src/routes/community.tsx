@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useState } from "react";
-import { Trophy, Plus, CheckCircle2, TrendingUp, Users, X, Send, Sparkles, ShieldCheck } from "lucide-react";
+import { Trophy, Plus, CheckCircle2, TrendingUp, Users, X, Send, Sparkles, ShieldCheck, Filter } from "lucide-react";
 import { formatINR } from "@/lib/format";
 
 export const Route = createFileRoute("/community")({ component: Community });
@@ -46,12 +46,52 @@ const MOCK_PROPOSALS = [
     ],
     votes: 1205
   },
+  {
+    id: "prop-4",
+    title: "Community Health Center Upgrade",
+    district: "Bhopal",
+    state: "Madhya Pradesh",
+    recovered_amount: 4.1,
+    status: "VOTING",
+    proposed_use: [
+      { title: "Oxygen Plant Setup", cost: 2.5 },
+      { title: "Modern Dialysis Unit", cost: 1.6 }
+    ],
+    votes: 310
+  },
+  {
+    id: "prop-5",
+    title: "Smart Classroom Initiative",
+    district: "Ranchi",
+    state: "Jharkhand",
+    recovered_amount: 0.9,
+    status: "VOTING",
+    proposed_use: [
+      { title: "10 Interactive Panels", cost: 0.5 },
+      { title: "E-Library Subscription", cost: 0.4 }
+    ],
+    votes: 156
+  },
+  {
+    id: "prop-6",
+    title: "Rural Skill Training Center",
+    district: "Guntur",
+    state: "Andhra Pradesh",
+    recovered_amount: 2.1,
+    status: "APPROVED",
+    proposed_use: [
+      { title: "Vocational Tools & Equipment", cost: 1.2 },
+      { title: "Training Staff Salaries", cost: 0.9 }
+    ],
+    votes: 540
+  },
 ];
 
 function Community() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [voted, setVoted] = useState<string[]>([]);
+  const [filter, setFilter] = useState("ALL");
 
   const handleSubmit = (e: any) => {
     e.preventDefault();
@@ -66,6 +106,8 @@ function Community() {
     if (voted.includes(id)) return;
     setVoted([...voted, id]);
   };
+
+  const filteredProposals = MOCK_PROPOSALS.filter(p => filter === "ALL" || p.status === filter);
 
   return (
     <AppShell>
@@ -87,7 +129,7 @@ function Community() {
             </div>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-navy-deep text-white px-8 py-4 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg hover:bg-saffron transition-all active:scale-95"
+              className="bg-success text-white px-8 py-4 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg hover:shadow-success/20 transition-all active:scale-95"
             >
               <Plus className="w-5 h-5" /> CREATE PROPOSAL
             </button>
@@ -95,19 +137,25 @@ function Community() {
         </div>
 
         <section className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="font-black text-2xl flex items-center gap-2 text-navy-deep tracking-tight">
               <CheckCircle2 className="text-success w-7 h-7" /> Active Reallocations
             </h2>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
                {["ALL", "VOTING", "APPROVED", "COMPLETED"].map(f => (
-                 <button key={f} className={`text-[10px] font-black px-4 py-2 rounded-full border-2 transition-all ${f === 'ALL' ? 'bg-navy-deep text-white border-navy-deep' : 'border-muted text-muted-foreground hover:border-saffron'}`}>{f}</button>
+                 <button 
+                   key={f} 
+                   onClick={() => setFilter(f)}
+                   className={`text-[10px] font-black px-4 py-2 rounded-full border-2 transition-all ${filter === f ? 'bg-navy-deep text-white border-navy-deep shadow-md' : 'bg-white border-muted text-muted-foreground hover:border-saffron'}`}
+                 >
+                   {f}
+                 </button>
                ))}
             </div>
           </div>
           
           <div className="grid lg:grid-cols-2 gap-8">
-            {MOCK_PROPOSALS.map((p) => (
+            {filteredProposals.map((p) => (
               <div key={p.id} className="bg-card border-2 border-transparent hover:border-saffron/20 rounded-3xl p-8 shadow-card transition-all relative overflow-hidden group">
                 <div className="flex items-start justify-between mb-8">
                   <div>

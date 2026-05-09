@@ -183,7 +183,7 @@ function Analyze() {
                 <h3 className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-2 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-danger" /> Evidence Findings
                 </h3>
-                {result.points.map((e, i) => (
+                {(result.points || []).map((e, i) => (
                   <div key={i} className="text-xs font-bold border-l-4 border-danger bg-white shadow-sm px-4 py-3 rounded-r-lg">
                     {e}
                   </div>
