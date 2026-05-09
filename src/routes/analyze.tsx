@@ -9,6 +9,7 @@ import {
   Save,
   Sparkles,
   Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
