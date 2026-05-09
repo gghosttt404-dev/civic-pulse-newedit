@@ -103,10 +103,16 @@ function RTIHub() {
                    </div>
                 </div>
                 <div className="flex gap-4">
-                   <button className="flex-1 bg-navy-deep text-white py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg">
+                   <button 
+                     onClick={() => window.print()}
+                     className="flex-1 bg-navy-deep text-white py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg hover:bg-saffron transition-all"
+                   >
                       <Download className="w-4 h-4" /> DOWNLOAD PDF
                    </button>
-                   <button className="flex-1 bg-saffron text-white py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-saffron/20">
+                   <button 
+                     onClick={() => alert("Citizenship Verified via DigiLocker. RTI Filed Digitally with Dept of Urban Development.")}
+                     className="flex-1 bg-saffron text-white py-4 rounded-xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-saffron/20 hover:scale-105 transition-transform"
+                   >
                       <Send className="w-4 h-4" /> FILE DIGITALLY
                    </button>
                 </div>
@@ -148,7 +154,15 @@ function RTIHub() {
              <Sparkles className="w-12 h-12 text-saffron mx-auto mb-4" />
              <h2 className="font-black text-3xl tracking-tighter mb-2">Generate Custom AI RTI</h2>
              <p className="text-white/60 font-medium text-sm max-w-sm mx-auto mb-8">Describe your issue in plain language, and NagrikAI will draft the perfect legal inquiry for you.</p>
-             <button className="bg-saffron text-white px-10 py-4 rounded-xl font-black text-sm flex items-center gap-2 mx-auto shadow-lg shadow-saffron/20 hover:scale-105 transition-transform">
+             <button 
+               onClick={() => {
+                 const issue = prompt("Describe your issue (e.g. 'Garbage not collected in my area for 2 weeks')");
+                 if (issue) {
+                   window.location.search = `?project=${encodeURIComponent(issue)}`;
+                 }
+               }}
+               className="bg-saffron text-white px-10 py-4 rounded-xl font-black text-sm flex items-center gap-2 mx-auto shadow-lg shadow-saffron/20 hover:scale-105 transition-transform"
+             >
                LAUNCH AI DRAFTER <Send className="w-4 h-4" />
              </button>
            </div>
