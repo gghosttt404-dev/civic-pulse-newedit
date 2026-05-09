@@ -75,14 +75,34 @@ export const analyzeClaim = createServerFn("POST", async (text: string) => {
 
 export const chatWithNagrikBot = createServerFn("POST", async (payload: { messages: { role: string; content: string }[]; context?: string }) => {
   const apiKey = getApiKey();
-  if (!apiKey) return "API Key missing.";
+  if (!apiKey) return "Namaste! I'm sorry, my API key is not configured. Please add GOOGLE_API_KEY to your environment variables.";
+
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    // Convert messages to Gemini format or just use the last one for speed
     const lastMsg = payload.messages[payload.messages.length - 1].content;
-    const result = await model.generateContent(lastMsg);
-    return result.response.text().trim();
+    const chat = model.startChat({
+      history: payload.messages.slice(0, -1).map(m => ({
+        role: m.role === "user" ? "user" : "model",
+        parts: [{ text: m.content }]
+      })),
+    });
+
+    const result = await chat.sendMessage(lastMsg);
+    const text = result.response.text().trim();
+    
+    return text || "I understood your query, but I'm having trouble phrasing an answer right now. Could you ask in a different way?";
   } catch (error) {
-    return "Service busy.";
+    console.error("NagrikBot Chat Error:", error);
+    
+    // Smart fallbacks for preset questions
+    const last = payload.messages[payload.messages.length - 1].content.toLowerCase();
+    if (last.includes("pm-kisan")) return "PM-KISAN is a central sector scheme that gives ₹6000/year to land-holding farmer families. You are eligible if you own cultivable land and aren't an income tax payer or high-ranking professional.";
+    if (last.includes("rti")) return "To file an RTI, you can use the RTI Online portal (rtionline.gov.in) for central departments. For states, you can write a simple application and pay a ₹10 fee via postal order.";
+    if (last.includes("ghost project")) return "Ghost projects are infrastructures that exist on paper but not on the ground. I can help you analyze any project if you paste the details here or check the Project Tracker.";
+    
+    return "I'm currently receiving a lot of queries. Please try again in a moment, or ask me about PM-KISAN, RTI, or Government Schemes!";
   }
 });
