@@ -99,14 +99,16 @@ function Onboarding() {
       .single();
 
     if (error) {
-      toast.error("Failed to save profile to database. Please check your connection.");
-      console.error("Profile save error:", error);
-      return;
+      console.warn("Supabase save failed, using local storage fallback:", error);
+      setUserId(fallbackRow.id);
+      setUserProfile(fallbackRow);
+      toast.success("Profile saved locally! Finding your schemes...");
+    } else {
+      setUserId(row.id);
+      setUserProfile(row);
+      toast.success("Profile saved! Finding your schemes...");
     }
 
-    setUserId(row.id);
-    setUserProfile(row);
-    toast.success("Profile saved! Finding your schemes...");
     nav({ to: "/grants" });
   };
 
