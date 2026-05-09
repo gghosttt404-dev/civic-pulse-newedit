@@ -43,18 +43,24 @@ function BotPage() {
       const finalMsgs = [...nextMsgs, assistantMsg];
       setMsgs(finalMsgs);
 
-      if (active) {
-        await supabase.from("nagrikbot_conversations").update({ messages: finalMsgs, updated_at: new Date().toISOString() }).eq("id", active);
-      } else {
-        const { data } = await supabase.from("nagrikbot_conversations").insert({ 
-          user_id: getUserId(), 
-          messages: finalMsgs, 
-          module_context: "full_chat" 
-        }).select().single();
-        if (data) setActive(data.id);
+      const userId = getUserId() || "anonymous";
+      
+      try {
+        if (active) {
+          await supabase.from("nagrikbot_conversations").update({ messages: finalMsgs, updated_at: new Date().toISOString() }).eq("id", active);
+        } else {
+          const { data } = await supabase.from("nagrikbot_conversations").insert({ 
+            user_id: userId, 
+            messages: finalMsgs, 
+            module_context: "full_chat" 
+          }).select().single();
+          if (data) setActive(data.id);
+        }
+        // Refresh sidebar
+        supabase.from("nagrikbot_conversations").select("*").order("updated_at", { ascending: false }).limit(20).then(({ data }) => setConvs(data || []));
+      } catch (dbErr) {
+        console.warn("DB update failed, chat remains in local state", dbErr);
       }
-      // Refresh sidebar
-      supabase.from("nagrikbot_conversations").select("*").order("updated_at", { ascending: false }).limit(20).then(({ data }) => setConvs(data || []));
     } catch (error) {
       console.error(error);
       setMsgs(m => [...m, { role: "assistant", content: "Sorry, I'm having trouble connecting right now." }]);
