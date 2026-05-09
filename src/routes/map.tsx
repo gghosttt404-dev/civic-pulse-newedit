@@ -102,7 +102,7 @@ function GhostMap() {
           const marker = new AdvancedMarkerElement({
             map, position: { lat: project.lat, lng: project.lng }, title: project.name, content: markerEl,
           });
-          marker.addListener("click", () => setSelected(project));
+          marker.addListener("gmp-click", () => setSelected(project));
           return [marker];
         });
       });

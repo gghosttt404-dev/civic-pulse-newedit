@@ -195,7 +195,7 @@ function Analyze() {
               <GhostScoreGauge score={result.score} />
               <div className="flex-1 space-y-3 w-full">
                 <h3 className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-2">Evidence Points</h3>
-                {result.points.map((e, i) => (
+                {(result.points || ["Analysis complete. Details pending verification."]).map((e, i) => (
                   <div
                     key={i}
                     className="text-xs font-bold border-l-4 border-danger bg-white shadow-sm px-4 py-3 rounded-r-lg animate-in slide-in-from-left duration-300"
