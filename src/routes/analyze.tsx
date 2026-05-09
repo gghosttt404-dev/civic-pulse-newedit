@@ -178,7 +178,7 @@ function Analyze() {
             </div>
 
             <div className="flex flex-col md:flex-row gap-8 items-center bg-muted/30 p-8 rounded-2xl border-2 border-dashed border-muted">
-              <GhostScoreGauge score={result.score} />
+              <GhostScoreGauge score={Math.min(100, Math.max(0, result.score || 0))} />
               <div className="flex-1 space-y-3 w-full">
                 <h3 className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-2 flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 text-danger" /> Evidence Findings

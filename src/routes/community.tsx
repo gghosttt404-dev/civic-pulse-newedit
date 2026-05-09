@@ -1,12 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Trophy, Plus, CheckCircle2, TrendingUp, Users, X, Send, Sparkles, ShieldCheck, Filter } from "lucide-react";
 import { formatINR } from "@/lib/format";
 
 export const Route = createFileRoute("/community")({ component: Community });
 
-const MOCK_PROPOSALS = [
+const INITIAL_PROPOSALS = [
   {
     id: "prop-1",
     title: "Solar Street Lights Installation",
@@ -88,17 +88,45 @@ const MOCK_PROPOSALS = [
 ];
 
 function Community() {
+  const [proposals, setProposals] = useState(INITIAL_PROPOSALS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [voted, setVoted] = useState<string[]>([]);
   const [filter, setFilter] = useState("ALL");
 
+  // Form states
+  const [newTitle, setNewTitle] = useState("");
+  const [newDistrict, setNewDistrict] = useState("");
+  const [newAmount, setNewAmount] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+
   const handleSubmit = (e: any) => {
     e.preventDefault();
+    
+    const newProp = {
+      id: `prop-new-${Date.now()}`,
+      title: newTitle,
+      district: newDistrict,
+      state: "Local State",
+      recovered_amount: parseFloat(newAmount) || 0,
+      status: "VOTING",
+      proposed_use: [
+        { title: "Initial Phase", cost: parseFloat(newAmount) * 0.7 },
+        { title: "Contingency", cost: parseFloat(newAmount) * 0.3 }
+      ],
+      votes: 1
+    };
+
+    setProposals([newProp, ...proposals]);
     setSubmitted(true);
+    
     setTimeout(() => {
       setIsModalOpen(false);
       setSubmitted(false);
+      setNewTitle("");
+      setNewDistrict("");
+      setNewAmount("");
+      setNewDesc("");
     }, 2000);
   };
 
@@ -107,7 +135,7 @@ function Community() {
     setVoted([...voted, id]);
   };
 
-  const filteredProposals = MOCK_PROPOSALS.filter(p => filter === "ALL" || p.status === filter);
+  const filteredProposals = proposals.filter(p => filter === "ALL" || p.status === filter);
 
   return (
     <AppShell>
@@ -124,7 +152,7 @@ function Community() {
               </div>
               <div>
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total Recovered</p>
-                <p className="text-xl font-black text-navy-deep">₹13.65 Cr</p>
+                <p className="text-xl font-black text-navy-deep">₹{(proposals.reduce((a, b) => a + b.recovered_amount, 0)).toFixed(2)} Cr</p>
               </div>
             </div>
             <button 
@@ -179,7 +207,7 @@ function Community() {
                   {p.proposed_use.map((use, idx) => (
                     <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-navy-deep/5">
                       <span className="text-xs font-black text-navy-deep">{use.title}</span>
-                      <span className="text-xs font-black text-success tracking-tighter">₹{use.cost} Cr</span>
+                      <span className="text-xs font-black text-success tracking-tighter">₹{use.cost.toFixed(2)} Cr</span>
                     </div>
                   ))}
                 </div>
@@ -228,28 +256,55 @@ function Community() {
                     </div>
                     <div>
                        <h3 className="font-black text-2xl text-navy-deep">Proposal Live!</h3>
-                       <p className="text-muted-foreground font-medium text-sm mt-2">Your proposal is now visible to {MOCK_PROPOSALS[0].votes}+ citizens for voting.</p>
+                       <p className="text-muted-foreground font-medium text-sm mt-2">Your proposal is now visible to thousands of citizens for voting.</p>
                     </div>
                   </div>
                 ) : (
                   <>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Infrastructure Goal</label>
-                      <input required placeholder="e.g. Smart School Conversion" className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold" />
+                      <input 
+                        required 
+                        value={newTitle}
+                        onChange={e => setNewTitle(e.target.value)}
+                        placeholder="e.g. Smart School Conversion" 
+                        className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold" 
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Target District</label>
-                        <input required placeholder="District" className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold" />
+                        <input 
+                          required 
+                          value={newDistrict}
+                          onChange={e => setNewDistrict(e.target.value)}
+                          placeholder="District" 
+                          className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold" 
+                        />
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Budget (₹ Cr)</label>
-                        <input required type="number" step="0.1" placeholder="Cr" className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold" />
+                        <input 
+                          required 
+                          type="number" 
+                          step="0.1" 
+                          value={newAmount}
+                          onChange={e => setNewAmount(e.target.value)}
+                          placeholder="Cr" 
+                          className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold" 
+                        />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Impact Description</label>
-                      <textarea required rows={4} placeholder="Describe how this recovered fund will serve the community..." className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold resize-none" />
+                      <textarea 
+                        required 
+                        rows={4} 
+                        value={newDesc}
+                        onChange={e => setNewDesc(e.target.value)}
+                        placeholder="Describe how this recovered fund will serve the community..." 
+                        className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold resize-none" 
+                      />
                     </div>
                     <button type="submit" className="w-full bg-saffron text-white py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-saffron/20 hover:scale-[1.01] transition-transform active:scale-95">
                       PUBLISH PROPOSAL <Send className="w-4 h-4" />
