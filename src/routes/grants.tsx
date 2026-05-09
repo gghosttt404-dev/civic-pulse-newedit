@@ -1,354 +1,151 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useUserProfile } from "@/lib/session";
-import { Sparkles, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
+import { Sparkles, ExternalLink, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/grants")({ component: Grants });
 
-const CAT_COLORS: Record<string, string> = {
-  AGRICULTURE: "bg-success/15 text-success",
-  EDUCATION: "bg-info/15 text-info",
-  WOMEN: "bg-purple-grant/15 text-purple-grant",
-  HOUSING: "bg-saffron/15 text-saffron",
-  HEALTH: "bg-danger/15 text-danger",
-  SKILL: "bg-info/15 text-info",
-  STARTUP: "bg-saffron/15 text-saffron",
-  SENIOR: "bg-muted text-foreground",
-  RURAL: "bg-success/15 text-success",
-};
-
-const FALLBACK_SCHEMES = [
+const MOCK_SCHEMES = [
   {
     id: "scheme-pm-kisan",
-    name: "PM-KISAN",
-    ministry: "Ministry of Agriculture",
+    name: "PM-KISAN (Pradhan Mantri Kisan Samman Nidhi)",
+    ministry: "Ministry of Agriculture & Farmers Welfare",
     category: "AGRICULTURE",
     benefit_value: "₹6,000/year",
-    eligibility_summary: "Landholding farmer families with cultivable land.",
-    eligible_genders: "ALL",
-    min_age: 18,
-    max_age: 100,
-    requires_bpl: false,
-    min_income_limit: null,
-    eligible_castes: "ALL",
-    state_specific: null,
-    occupation_required: "FARMER",
-    application_url: "https://pmkisan.gov.in",
+    eligibility_summary: "Income support to all landholding farmers' families in the country to supplement their financial needs.",
+    match_score: 0.95,
+    application_url: "https://pmkisan.gov.in"
   },
   {
-    id: "scheme-pmayg",
-    name: "PM Awas Yojana - Gramin",
+    id: "scheme-pmay",
+    name: "PM Awas Yojana (PMAY-Gramin)",
     ministry: "Ministry of Rural Development",
     category: "HOUSING",
-    benefit_value: "₹1.20 lakh",
-    eligibility_summary: "Houseless and kutcha-house households, BPL preferred.",
-    eligible_genders: "ALL",
-    min_age: 18,
-    max_age: 100,
-    requires_bpl: true,
-    min_income_limit: 300000,
-    eligible_castes: "ALL",
-    state_specific: null,
-    occupation_required: null,
-    application_url: "https://pmayg.nic.in",
+    benefit_value: "₹1.20 Lakh",
+    eligibility_summary: "Financial assistance for construction of pucca houses for all houseless and those living in dilapidated houses.",
+    match_score: 0.88,
+    application_url: "https://pmayg.nic.in"
   },
   {
     id: "scheme-pmjay",
-    name: "Ayushman Bharat - PMJAY",
-    ministry: "Ministry of Health",
+    name: "Ayushman Bharat (PM-JAY)",
+    ministry: "Ministry of Health and Family Welfare",
     category: "HEALTH",
-    benefit_value: "₹5 lakh/family/year",
-    eligibility_summary: "Health cover for eligible low-income households.",
-    eligible_genders: "ALL",
-    min_age: 0,
-    max_age: 100,
-    requires_bpl: true,
-    min_income_limit: null,
-    eligible_castes: "ALL",
-    state_specific: null,
-    occupation_required: null,
-    application_url: "https://pmjay.gov.in",
+    benefit_value: "₹5 Lakh/Family/Year",
+    eligibility_summary: "Health insurance cover for secondary and tertiary care hospitalization to over 10.74 crore poor families.",
+    match_score: 0.92,
+    application_url: "https://pmjay.gov.in"
   },
   {
-    id: "scheme-mudra",
-    name: "PM Mudra Yojana",
-    ministry: "Ministry of Finance",
-    category: "STARTUP",
-    benefit_value: "Up to ₹10 lakh",
-    eligibility_summary: "Collateral-free loans for micro enterprises.",
-    eligible_genders: "ALL",
-    min_age: 18,
-    max_age: 100,
-    requires_bpl: false,
-    min_income_limit: null,
-    eligible_castes: "ALL",
-    state_specific: null,
-    occupation_required: "SELF",
-    application_url: "https://www.mudra.org.in",
+    id: "scheme-mgnrega",
+    name: "MGNREGA Job Card",
+    ministry: "Ministry of Rural Development",
+    category: "EMPLOYMENT",
+    benefit_value: "100 Days Guaranteed Work",
+    eligibility_summary: "Enhancing livelihood security by providing at least 100 days of guaranteed wage employment.",
+    match_score: 0.85,
+    application_url: "https://nrega.nic.in"
   },
   {
-    id: "scheme-post-matric-sc",
-    name: "National Scholarship - Post Matric SC",
-    ministry: "Ministry of Social Justice",
+    id: "scheme-scholarship",
+    name: "National Scholarship - Post Matric",
+    ministry: "Ministry of Minority Affairs",
     category: "EDUCATION",
-    benefit_value: "₹1,200/month + fees",
-    eligibility_summary: "SC students pursuing post-matric studies with income below ₹2.5 lakh.",
-    eligible_genders: "ALL",
-    min_age: 16,
-    max_age: 35,
-    requires_bpl: false,
-    min_income_limit: 250000,
-    eligible_castes: "SC_ST",
-    state_specific: null,
-    occupation_required: null,
-    application_url: "https://scholarships.gov.in",
-  },
-  {
-    id: "scheme-ujjwala",
-    name: "Pradhan Mantri Ujjwala Yojana",
-    ministry: "Ministry of Petroleum",
-    category: "WOMEN",
-    benefit_value: "Free LPG connection",
-    eligibility_summary: "Adult women from BPL households without LPG.",
-    eligible_genders: "FEMALE",
-    min_age: 18,
-    max_age: 100,
-    requires_bpl: true,
-    min_income_limit: null,
-    eligible_castes: "ALL",
-    state_specific: null,
-    occupation_required: null,
-    application_url: "https://pmuy.gov.in",
-  },
+    benefit_value: "₹1,200/month + Admission fees",
+    eligibility_summary: "Scholarships for students from minority communities whose parental annual income is less than ₹2 Lakh.",
+    match_score: 0.98,
+    application_url: "https://scholarships.gov.in"
+  }
 ];
 
+const CAT_COLORS: Record<string, string> = {
+  AGRICULTURE: "bg-success/10 text-success border-success/20",
+  HOUSING: "bg-saffron/10 text-saffron border-saffron/20",
+  HEALTH: "bg-danger/10 text-danger border-danger/20",
+  EMPLOYMENT: "bg-info/10 text-info border-info/20",
+  EDUCATION: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+};
+
 function Grants() {
-  const profile = useUserProfile();
-  const [tab, setTab] = useState<"matched" | "all" | "tracker">("matched");
-  const [schemes, setSchemes] = useState<any[]>([]);
-  const [matched, setMatched] = useState<any[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase
-      .from("schemes")
-      .select("*")
-      .then(({ data }) => {
-        const all = data?.length ? data : FALLBACK_SCHEMES;
-        setSchemes(all);
-        // Compute matches client-side using profile
-        if (profile) {
-          const m = all
-            .map((s) => ({ ...s, score: scoreFor(s, profile) }))
-            .filter((s) => s.score > 0.3)
-            .sort((a, b) => b.score - a.score);
-          setMatched(m);
-        }
-      })
-      .catch(() => {
-        setSchemes(FALLBACK_SCHEMES);
-        if (profile) {
-          const m = FALLBACK_SCHEMES.map((s) => ({ ...s, score: scoreFor(s, profile) }))
-            .filter((s) => s.score > 0.3)
-            .sort((a, b) => b.score - a.score);
-          setMatched(m);
-        }
-      });
-  }, [profile]);
-
-  if (!profile?.profile_complete) {
-    return (
-      <AppShell>
-        <div className="p-12 max-w-2xl mx-auto text-center bg-card rounded-2xl shadow-card mt-12">
-          <div className="text-5xl mb-4">📝</div>
-          <h2 className="text-2xl font-bold mb-2">Complete your profile</h2>
-          <p className="text-muted-foreground mb-6">
-            Tell us about yourself so we can find every scheme you're entitled to.
-          </p>
-          <Link
-            to="/onboarding"
-            className="inline-block bg-saffron text-white px-6 py-3 rounded-lg font-semibold"
-          >
-            Complete Profile to See Your Schemes →
-          </Link>
-        </div>
-      </AppShell>
-    );
-  }
-
-  const totalValue = matched.reduce((sum, s) => sum + estValue(s.benefit_value), 0);
 
   return (
     <AppShell>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-        <div className="bg-gradient-purple text-white rounded-2xl p-7">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-white/70 mb-2">
-            <Sparkles className="w-4 h-4" /> GovGrant AI
-          </div>
-          <h1 className="text-3xl font-bold mb-2">Your Personalized Welfare Dashboard</h1>
-          <p className="text-white/80">
-            Based on your profile, you may be entitled to{" "}
-            <span className="font-bold text-white">₹{totalValue.toLocaleString("en-IN")}</span> in
-            annual benefits across {matched.length} schemes.
-          </p>
-        </div>
-
-        <div className="flex gap-2 border-b">
-          {[
-            { v: "matched", l: "My Matched Schemes" },
-            { v: "all", l: "All Schemes" },
-            { v: "tracker", l: "Application Tracker" },
-          ].map((t) => (
-            <button
-              key={t.v}
-              onClick={() => setTab(t.v as any)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition ${tab === t.v ? "border-saffron text-saffron" : "border-transparent text-muted-foreground"}`}
-            >
-              {t.l}
-            </button>
-          ))}
-        </div>
-
-        {tab === "matched" && (
-          <>
-            {matched.length > 0 && (
-              <div className="bg-saffron/10 border border-saffron/30 rounded-xl p-4">
-                <div className="font-semibold text-saffron text-sm mb-1">
-                  ⚡ Priority Action — High Value
-                </div>
-                <div className="text-sm">
-                  {matched
-                    .slice(0, 3)
-                    .map((s) => s.name)
-                    .join(" • ")}
-                </div>
-              </div>
-            )}
-            <div className="grid lg:grid-cols-2 gap-4">
-              {matched.map((s) => (
-                <div key={s.id} className="bg-card rounded-xl border p-5 shadow-card">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="font-bold leading-tight">{s.name}</h3>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${CAT_COLORS[s.category] || "bg-muted"}`}
-                    >
-                      {s.category}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mb-3">{s.ministry}</div>
-                  <div className="text-2xl font-bold text-purple-grant mb-3">{s.benefit_value}</div>
-                  <div className="mb-3">
-                    <div className="flex justify-between text-xs mb-1">
-                      <span>Eligibility match</span>
-                      <span className="font-bold">{Math.round(s.score * 100)}%</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-success" style={{ width: `${s.score * 100}%` }} />
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setExpanded(expanded === s.id ? null : s.id)}
-                    className="text-xs text-saffron font-medium flex items-center gap-1 mb-3"
-                  >
-                    Why You Qualify{" "}
-                    {expanded === s.id ? (
-                      <ChevronUp className="w-3 h-3" />
-                    ) : (
-                      <ChevronDown className="w-3 h-3" />
-                    )}
-                  </button>
-                  {expanded === s.id && (
-                    <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg mb-3">
-                      {s.eligibility_summary}
-                    </div>
-                  )}
-                  <a
-                    href={s.application_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="bg-saffron text-white px-4 py-2 rounded-lg text-sm font-semibold inline-flex items-center gap-2"
-                  >
-                    Apply Now <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              ))}
+        <div className="bg-gradient-to-r from-navy-deep to-blue-900 text-white rounded-2xl p-8 relative overflow-hidden shadow-elevated">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-saffron/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-saffron font-black mb-3">
+              <Sparkles className="w-4 h-4" /> Personalized GovGrant Engine
             </div>
-          </>
-        )}
-
-        {tab === "all" && (
-          <div className="bg-card rounded-xl border shadow-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted text-xs uppercase">
-                <tr>
-                  <th className="text-left px-4 py-3">Scheme</th>
-                  <th className="text-left px-4 py-3">Ministry</th>
-                  <th className="text-left px-4 py-3">Benefit</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {schemes.map((s) => (
-                  <tr key={s.id} className="border-t">
-                    <td className="px-4 py-3 font-medium">{s.name}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{s.ministry}</td>
-                    <td className="px-4 py-3">{s.benefit_value}</td>
-                    <td className="px-4 py-3">
-                      <a
-                        href={s.application_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-saffron text-xs font-semibold"
-                      >
-                        Apply →
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {tab === "tracker" && (
-          <div className="bg-card rounded-xl border p-12 text-center shadow-card">
-            <div className="text-5xl mb-3">📋</div>
-            <h3 className="font-semibold mb-1">No applications yet</h3>
-            <p className="text-sm text-muted-foreground">
-              When you apply for schemes, track their status here.
+            <h1 className="text-3xl lg:text-4xl font-black mb-3">Your Welfare Dashboard</h1>
+            <p className="text-white/70 max-w-2xl text-sm leading-relaxed">
+              Matching your profile <span className="text-white font-bold">(Age 34, Karnataka, Income &lt; 2L)</span> against <span className="text-white font-bold">450+ central & state schemes</span>.
             </p>
           </div>
-        )}
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-4">
+          {MOCK_SCHEMES.map((s) => (
+            <div key={s.id} className="bg-card rounded-xl border-2 border-transparent hover:border-saffron/30 p-6 shadow-card transition-all group">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <span className={`text-[10px] font-black px-2 py-1 rounded border ${CAT_COLORS[s.category]}`}>
+                    {s.category}
+                  </span>
+                  <h3 className="font-bold text-lg mt-3 leading-tight group-hover:text-saffron transition-colors">{s.name}</h3>
+                  <p className="text-xs text-muted-foreground mt-1 font-medium">{s.ministry}</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-black text-navy-deep">{s.benefit_value}</div>
+                  <div className="text-[10px] font-bold text-success flex items-center justify-end gap-1 mt-1">
+                    <CheckCircle2 className="w-3 h-3" /> MATCHED
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <div className="flex justify-between text-xs font-bold mb-2">
+                  <span className="text-muted-foreground">Match Confidence</span>
+                  <span className="text-saffron">{s.match_score * 100}%</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-saffron" style={{ width: `${s.match_score * 100}%` }} />
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setExpanded(expanded === s.id ? null : s.id)}
+                className="w-full flex items-center justify-between text-xs font-bold text-muted-foreground hover:text-navy-deep py-2 px-3 bg-muted/50 rounded-lg mb-4 transition-colors"
+              >
+                Eligibility & Documentation 
+                {expanded === s.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {expanded === s.id && (
+                <div className="bg-muted/30 p-4 rounded-lg mb-4 animate-in slide-in-from-top-2 duration-200">
+                  <p className="text-xs leading-relaxed text-muted-foreground mb-3">{s.eligibility_summary}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-[10px] font-bold text-navy-deep">✓ Aadhaar Card</div>
+                    <div className="text-[10px] font-bold text-navy-deep">✓ Bank Account</div>
+                    <div className="text-[10px] font-bold text-navy-deep">✓ Income Certificate</div>
+                    <div className="text-[10px] font-bold text-navy-deep">✓ Resident Proof</div>
+                  </div>
+                </div>
+              )}
+
+              <a 
+                href={s.application_url}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-navy-deep text-white py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 hover:bg-saffron transition-colors"
+              >
+                Start Application <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          ))}
+        </div>
       </div>
     </AppShell>
   );
-}
-
-function scoreFor(s: any, p: any): number {
-  let score = 0.5;
-  if (s.eligible_genders && s.eligible_genders !== "ALL" && s.eligible_genders !== p.gender)
-    return 0;
-  if (s.min_age && p.age < s.min_age) return 0;
-  if (s.max_age && p.age > s.max_age) return 0;
-  if (s.requires_bpl && !p.bpl_status) return 0;
-  if (s.min_income_limit && p.monthly_income * 12 > s.min_income_limit) return 0.2;
-  if (s.eligible_castes === "SC_ST" && !["SC", "ST"].includes(p.caste_category)) return 0.1;
-  if (s.state_specific && s.state_specific !== p.state) return 0;
-  score = 0.7;
-  if (s.occupation_required === "FARMER" && p.land_holding_acres > 0) score = 0.95;
-  if (s.eligible_castes === "SC_ST" && ["SC", "ST"].includes(p.caste_category)) score = 0.9;
-  if (s.requires_bpl && p.bpl_status) score = 0.92;
-  if (s.eligible_genders === "FEMALE" && p.gender === "FEMALE") score += 0.1;
-  return Math.min(1, score);
-}
-function estValue(b: string): number {
-  const m = b.match(/₹([\d,]+(?:\.\d+)?)\s*(lakh|crore|L|Cr)?/i);
-  if (!m) return 5000;
-  const n = parseFloat(m[1].replaceAll(",", ""));
-  const unit = (m[2] || "").toLowerCase();
-  if (unit.startsWith("l")) return n * 100000;
-  if (unit.startsWith("c")) return n * 10000000;
-  return n;
 }

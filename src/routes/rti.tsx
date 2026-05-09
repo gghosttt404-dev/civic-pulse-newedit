@@ -1,193 +1,113 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { getUserId } from "@/lib/session";
-import { toast } from "sonner";
-import { FileText, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { FileText, Download, Send, Search, ChevronRight, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/rti")({ component: RTIHub });
 
-const RTI_TYPES = [
-  { v: "GHOST", emoji: "🏗️", title: "Ghost Infrastructure", desc: "Request evidence for suspicious project" },
-  { v: "SCHEME", emoji: "💸", title: "Scheme Non-Delivery", desc: "Why hasn't my benefit been disbursed?" },
-  { v: "FUND", emoji: "💰", title: "Fund Utilization", desc: "Where did the money go?" },
-  { v: "EMPLOYMENT", emoji: "👔", title: "Employment Process", desc: "Hiring irregularities" },
-  { v: "LAND", emoji: "🏠", title: "Land Records", desc: "Land acquisition documents" },
-  { v: "CUSTOM", emoji: "✍️", title: "Custom RTI", desc: "Describe your issue" },
+const MOCK_TEMPLATES = [
+  {
+    id: "temp-road",
+    title: "Road Project Transparency Inquiry",
+    category: "INFRASTRUCTURE",
+    questions: [
+      "Copy of the sanctioned estimate and technical specifications.",
+      "Details of payments made to the contractor date-wise.",
+      "Copy of the completion certificate and quality test reports.",
+      "Geo-tagged photos of the project site as per government norms."
+    ],
+    usage_count: 1420
+  },
+  {
+    id: "temp-hospital",
+    title: "Hospital Fund & Equipment Audit",
+    category: "HEALTHCARE",
+    questions: [
+      "Total budget sanctioned for medical equipment in last 3 years.",
+      "List of equipment purchased and their current working status.",
+      "Details of staff vacancies and sanctioned strength.",
+      "Copy of the medicines stock register for the current month."
+    ],
+    usage_count: 850
+  },
+  {
+    id: "temp-school",
+    title: "School Infrastructure Verification",
+    category: "EDUCATION",
+    questions: [
+      "Funds released for classroom renovation and toilet construction.",
+      "Copy of the Mid-Day Meal fund utilization report.",
+      "Details of computer lab installation and internet connectivity.",
+      "Copy of the latest safety audit certificate of the building."
+    ],
+    usage_count: 630
+  }
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  DRAFTED: "bg-muted text-foreground",
-  FILED: "bg-info text-white",
-  ACKNOWLEDGED: "bg-info/70 text-white",
-  RESPONDED: "bg-success text-white",
-  APPEALED: "bg-saffron text-white",
-};
-
 function RTIHub() {
-  const [type, setType] = useState("GHOST");
-  const [department, setDepartment] = useState("");
-  const [state, setState] = useState("Bihar");
-  const [issue, setIssue] = useState("");
-  const [generated, setGenerated] = useState<any | null>(null);
-  const [rtis, setRtis] = useState<any[]>([]);
-  const [editing, setEditing] = useState(false);
-  const [draftText, setDraftText] = useState("");
-
-  const load = () => {
-    const uid = getUserId();
-    if (!uid) return;
-    supabase
-      .from("rtis")
-      .select("*")
-      .eq("user_id", uid)
-      .order("generated_at", { ascending: false })
-      .then(({ data }) => setRtis(data || []));
-  };
-  
-  useEffect(() => { load(); }, []);
-
-  useEffect(() => {
-    if (generated) setDraftText(generated.body_english);
-  }, [generated]);
-
-  const generate = async () => {
-    const subject = `Information request — ${RTI_TYPES.find(t => t.v === type)?.title}`;
-    const body = `Under Section 6(1) of the RTI Act, 2005, I, the undersigned citizen, request the following information from your office:\n\n${issue || `Details regarding ${type.toLowerCase()} matter in ${state}`}\n\n1) Date-wise expenditure statement.\n2) Copies of tender documents and contractor details.\n3) Site inspection / verification reports for the last 12 months.\n4) Geo-tagged photographic evidence of completion.\n5) Third-party quality audit reports if any.\n\nThe information is requested in English. Required application fee of ₹10 is enclosed by IPO.`;
-    
-    const { data, error } = await supabase.from("rtis").insert({
-      user_id: getUserId(),
-      rti_type: type,
-      pio_name: "The Public Information Officer",
-      pio_address: `Office of the District Magistrate, ${state}`,
-      department: department || "Concerned Department",
-      subject_line: subject,
-      body_english: body,
-      status: "DRAFTED",
-    }).select().single();
-
-    if (error) {
-      if (error.code === "23503") {
-        toast.error("Session expired or invalid. Please re-onboard to continue.");
-      } else {
-        toast.error(error.message);
-      }
-    }
-    else { 
-      setGenerated(data); 
-      toast.success("RTI drafted by AI"); 
-      load(); 
-    }
-  };
-
-  const updateRTI = async () => {
-    if (!generated) return;
-    const { error } = await supabase.from("rtis").update({ body_english: draftText }).eq("id", generated.id);
-    if (error) toast.error(error.message);
-    else { 
-      toast.success("Draft updated"); 
-      setEditing(false); 
-      load(); 
-    }
-  };
-
-  const markFiled = async () => {
-    if (!generated) return;
-    const { error } = await supabase.from("rtis").update({ status: "FILED", filed_at: new Date().toISOString() }).eq("id", generated.id);
-    if (error) toast.error(error.message);
-    else { 
-      toast.success("Marked as Filed!"); 
-      setGenerated(null); 
-      load(); 
-    }
-  };
-
-  const downloadPDF = () => {
-    window.print();
-  };
+  const [selected, setSelected] = useState<string | null>(null);
 
   return (
     <AppShell>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto print:p-0">
-        <div className="print:hidden">
-          <h1 className="text-3xl font-bold mb-2">RTI Hub</h1>
-          <p className="text-muted-foreground mb-6">AI-drafted Right to Information applications in seconds.</p>
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black">AI-Drafted RTI Hub</h1>
+            <p className="text-muted-foreground">Expertly crafted RTI templates to demand accountability from local departments.</p>
+          </div>
+          <div className="relative w-full md:w-96">
+            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input 
+              placeholder="Search templates (e.g. 'Police', 'Land')..."
+              className="w-full pl-11 pr-4 py-3 bg-card border rounded-xl outline-none focus:ring-2 focus:ring-saffron"
+            />
+          </div>
         </div>
 
-        <div className="grid lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-2 space-y-4 print:col-span-5">
-            <div className="bg-card border rounded-xl p-5 shadow-card print:hidden">
-              <h2 className="font-bold mb-4">Generate New RTI</h2>
-              <div className="grid grid-cols-2 gap-2 mb-4">
-                {RTI_TYPES.map(t => (
-                  <button key={t.v} onClick={() => setType(t.v)} className={`text-left p-3 rounded-lg border text-xs transition ${type === t.v ? "border-saffron bg-saffron/5" : "hover:border-saffron/40"}`}>
-                    <div className="text-lg">{t.emoji}</div>
-                    <div className="font-semibold mt-1">{t.title}</div>
-                    <div className="text-muted-foreground mt-0.5 text-[10px]">{t.desc}</div>
-                  </button>
-                ))}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {MOCK_TEMPLATES.map((t) => (
+            <div key={t.id} className="bg-card border-2 border-transparent hover:border-saffron/30 rounded-2xl p-6 shadow-card transition-all flex flex-col group">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-4">
+                   <span className="text-[10px] font-black text-navy-deep bg-muted px-2 py-1 rounded tracking-widest uppercase">{t.category}</span>
+                   <span className="text-[10px] font-bold text-muted-foreground">{t.usage_count} Drafted</span>
+                </div>
+                <h3 className="font-black text-lg mb-4 group-hover:text-saffron transition-colors leading-tight">{t.title}</h3>
+                <ul className="space-y-3">
+                  {t.questions.map((q, idx) => (
+                    <li key={idx} className="flex gap-3 text-xs text-muted-foreground leading-relaxed">
+                      <ChevronRight className="w-3 h-3 text-saffron flex-shrink-0 mt-0.5" /> {q}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <textarea value={issue} onChange={e => setIssue(e.target.value)} placeholder="Describe your issue..."
-                className="w-full px-3 py-2 border rounded-lg text-sm h-24 outline-none focus:ring-2 focus:ring-saffron mb-3" />
-              <input value={department} onChange={e => setDepartment(e.target.value)} placeholder="Department / Ministry"
-                className="w-full px-3 py-2 border rounded-lg text-sm mb-3" />
-              <input value={state} onChange={e => setState(e.target.value)} placeholder="State"
-                className="w-full px-3 py-2 border rounded-lg text-sm mb-4" />
-              <button onClick={generate} className="w-full bg-saffron text-white py-3 rounded-lg font-semibold inline-flex items-center justify-center gap-2">
-                <Sparkles className="w-4 h-4" /> Generate RTI with AI
-              </button>
-              <div className="text-[10px] text-center text-saffron mt-2">🔌 AI Integration Ready</div>
+              <div className="mt-8 flex gap-2">
+                <button className="flex-1 bg-navy-deep text-white text-xs font-black py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-saffron transition-colors">
+                  <FileText className="w-4 h-4" /> DRAFT NOW
+                </button>
+                <button className="bg-muted text-muted-foreground p-3 rounded-lg hover:text-navy-deep transition-colors">
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
             </div>
+          ))}
+        </div>
 
-            {generated && (
-              <div className="bg-white border-2 border-saffron rounded-xl p-6 font-serif text-sm shadow-elevated print:border-0 print:shadow-none print:p-0">
-                <div className="text-xs text-muted-foreground mb-3 print:hidden">Generated Draft (editable)</div>
-                <div className="font-semibold">To,</div>
-                <div>{generated.pio_name}</div>
-                <div>{generated.pio_address}</div>
-                <div className="my-3"><strong>Subject:</strong> {generated.subject_line}</div>
-                
-                {editing ? (
-                  <textarea 
-                    value={draftText} 
-                    onChange={e => setDraftText(e.target.value)}
-                    className="w-full h-64 p-2 border rounded font-sans text-xs mb-3"
-                  />
-                ) : (
-                  <div className="whitespace-pre-line text-xs leading-relaxed">{draftText}</div>
-                )}
+        <div className="bg-card border-2 border-dashed border-muted-foreground/20 rounded-2xl p-12 text-center">
+           <Lock className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+           <h2 className="font-black text-xl mb-2">Generate Custom AI RTI</h2>
+           <p className="text-muted-foreground text-sm max-w-sm mx-auto mb-6">Describe your issue in plain language, and NagrikAI will draft the perfect legal inquiry for you.</p>
+           <button className="bg-saffron text-white px-8 py-4 rounded-xl font-black text-sm flex items-center gap-2 mx-auto shadow-lg shadow-saffron/20">
+             LAUNCH AI DRAFTER <Send className="w-4 h-4" />
+           </button>
+        </div>
 
-                <div className="flex gap-2 mt-4 print:hidden">
-                  {editing ? (
-                    <button onClick={updateRTI} className="text-xs bg-saffron text-white px-3 py-1.5 rounded">Save Changes</button>
-                  ) : (
-                    <button onClick={() => setEditing(true)} className="text-xs bg-navy-deep text-white px-3 py-1.5 rounded">Edit</button>
-                  )}
-                  <button onClick={downloadPDF} className="text-xs border px-3 py-1.5 rounded">Download PDF</button>
-                  <button onClick={markFiled} className="text-xs bg-success text-white px-3 py-1.5 rounded">Mark as Filed</button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="lg:col-span-3 space-y-3 print:hidden">
-            <h2 className="font-bold">My RTIs ({rtis.length})</h2>
-            {rtis.map(r => (
-              <div key={r.id} className="bg-card border rounded-xl p-4 shadow-card">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-saffron" />
-                    <span className="text-xs font-bold bg-muted px-2 py-0.5 rounded">{r.rti_type}</span>
-                  </div>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${STATUS_COLORS[r.status]}`}>{r.status}</span>
-                </div>
-                <div className="font-semibold text-sm">{r.subject_line}</div>
-                <div className="text-xs text-muted-foreground mt-1">{r.department} • {new Date(r.generated_at).toLocaleDateString()}</div>
-              </div>
-            ))}
-            {rtis.length === 0 && <div className="text-center text-muted-foreground py-12">No RTIs yet. Generate your first one →</div>}
-          </div>
+        <div className="bg-card rounded-2xl border p-6 shadow-card">
+           <h2 className="font-black mb-4">My Filed RTIs</h2>
+           <div className="text-center py-12 text-muted-foreground">
+             <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
+             <p className="text-sm font-medium">You haven't filed any RTIs yet. Your activity will appear here.</p>
+           </div>
         </div>
       </div>
     </AppShell>
