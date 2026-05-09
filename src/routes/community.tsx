@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { useState } from "react";
-import { Trophy, Plus, CheckCircle2, TrendingUp, Users, X, Send } from "lucide-react";
+import { Trophy, Plus, CheckCircle2, TrendingUp, Users, X, Send, Sparkles, ShieldCheck } from "lucide-react";
 import { formatINR } from "@/lib/format";
 
 export const Route = createFileRoute("/community")({ component: Community });
@@ -51,6 +51,7 @@ const MOCK_PROPOSALS = [
 function Community() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [voted, setVoted] = useState<string[]>([]);
 
   const handleSubmit = (e: any) => {
     e.preventDefault();
@@ -61,70 +62,100 @@ function Community() {
     }, 2000);
   };
 
+  const handleVote = (id: string) => {
+    if (voted.includes(id)) return;
+    setVoted([...voted, id]);
+  };
+
   return (
     <AppShell>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-black mb-2">Community Recovery</h1>
-            <p className="text-muted-foreground max-w-xl">Redirecting "Ghost Funds" from stalled projects into real community infrastructure.</p>
+            <h1 className="text-4xl font-black text-navy-deep tracking-tighter">Community Recovery</h1>
+            <p className="text-muted-foreground font-medium max-w-xl">Redirecting "Ghost Funds" from stalled projects into real community infrastructure.</p>
           </div>
           <div className="flex gap-4">
-            <div className="bg-card border-2 border-saffron/20 rounded-xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-saffron/10 flex items-center justify-center text-saffron">
-                <TrendingUp className="w-5 h-5" />
+            <div className="bg-card border-2 border-saffron/20 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-saffron/10 flex items-center justify-center text-saffron">
+                <TrendingUp className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-muted-foreground uppercase">Total Recovered</p>
-                <p className="text-lg font-black text-navy-deep">₹13.65 Cr</p>
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Total Recovered</p>
+                <p className="text-xl font-black text-navy-deep">₹13.65 Cr</p>
               </div>
             </div>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-success text-white px-6 py-4 rounded-xl font-black text-sm flex items-center gap-2 shadow-lg hover:shadow-success/20 transition-all active:scale-95"
+              className="bg-navy-deep text-white px-8 py-4 rounded-2xl font-black text-sm flex items-center gap-2 shadow-lg hover:bg-saffron transition-all active:scale-95"
             >
               <Plus className="w-5 h-5" /> CREATE PROPOSAL
             </button>
           </div>
         </div>
 
-        <section className="space-y-4">
-          <h2 className="font-black text-xl flex items-center gap-2">
-            <CheckCircle2 className="text-success w-6 h-6" /> Reallocation Proposals
-          </h2>
-          <div className="grid lg:grid-cols-2 gap-6">
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="font-black text-2xl flex items-center gap-2 text-navy-deep tracking-tight">
+              <CheckCircle2 className="text-success w-7 h-7" /> Active Reallocations
+            </h2>
+            <div className="flex gap-2">
+               {["ALL", "VOTING", "APPROVED", "COMPLETED"].map(f => (
+                 <button key={f} className={`text-[10px] font-black px-4 py-2 rounded-full border-2 transition-all ${f === 'ALL' ? 'bg-navy-deep text-white border-navy-deep' : 'border-muted text-muted-foreground hover:border-saffron'}`}>{f}</button>
+               ))}
+            </div>
+          </div>
+          
+          <div className="grid lg:grid-cols-2 gap-8">
             {MOCK_PROPOSALS.map((p) => (
-              <div key={p.id} className="bg-card border-2 border-transparent hover:border-success/30 rounded-2xl p-6 shadow-card transition-all relative overflow-hidden group">
-                <div className="flex items-start justify-between mb-6">
+              <div key={p.id} className="bg-card border-2 border-transparent hover:border-saffron/20 rounded-3xl p-8 shadow-card transition-all relative overflow-hidden group">
+                <div className="flex items-start justify-between mb-8">
                   <div>
-                    <span className={`text-[9px] font-black px-2 py-1 rounded tracking-widest ${p.status === "COMPLETED" ? "bg-success text-white" : "bg-saffron text-white"}`}>
+                    <span className={`text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase ${p.status === "COMPLETED" ? "bg-success/10 text-success border border-success/20" : "bg-saffron/10 text-saffron border border-saffron/20"}`}>
                       {p.status}
                     </span>
-                    <h3 className="font-black text-xl mt-3 leading-tight">{p.title}</h3>
-                    <p className="text-xs text-muted-foreground font-bold mt-1 uppercase tracking-tighter">{p.district}, {p.state}</p>
+                    <h3 className="font-black text-2xl mt-4 leading-tight text-navy-deep group-hover:text-saffron transition-colors">{p.title}</h3>
+                    <div className="flex items-center gap-2 mt-2">
+                       <ShieldCheck className="w-4 h-4 text-success" />
+                       <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{p.district}, {p.state} • RECOVERY ID: {p.id.toUpperCase()}</p>
+                    </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Fund Recovered</p>
-                    <p className="text-2xl font-black text-success">₹{p.recovered_amount} Cr</p>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">Fund Pool</p>
+                    <p className="text-3xl font-black text-success tracking-tighter">₹{p.recovered_amount} Cr</p>
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-6">
+                <div className="space-y-4 mb-8 bg-muted/30 p-6 rounded-2xl border-2 border-dashed border-muted">
+                  <h4 className="text-[10px] font-black text-navy-deep uppercase tracking-widest mb-2">Budget Allocation Plan</h4>
                   {p.proposed_use.map((use, idx) => (
-                    <div key={idx} className="bg-muted/50 p-3 rounded-xl flex justify-between items-center">
-                      <span className="text-xs font-bold text-navy-deep">{use.title}</span>
-                      <span className="text-xs font-black text-muted-foreground">₹{use.cost} Cr</span>
+                    <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-navy-deep/5">
+                      <span className="text-xs font-black text-navy-deep">{use.title}</span>
+                      <span className="text-xs font-black text-success tracking-tighter">₹{use.cost} Cr</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="flex items-center justify-between border-t pt-4">
-                  <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-                    <Users className="w-4 h-4" /> {p.votes} Citizens Voted
+                <div className="flex items-center justify-between pt-4">
+                  <div className="flex items-center gap-2 text-xs font-black text-muted-foreground">
+                    <Users className="w-4 h-4" /> {p.votes + (voted.includes(p.id) ? 1 : 0)} Citizens Support
                   </div>
-                  <button className={`px-5 py-2 rounded-lg font-black text-xs transition-all ${p.status === "VOTING" ? "bg-saffron text-white shadow-lg shadow-saffron/20" : "bg-muted text-muted-foreground cursor-not-allowed"}`}>
-                    {p.status === "VOTING" ? "VOTE NOW" : "PROPOSAL LOCKED"}
-                  </button>
+                  <div className="flex gap-3">
+                    <Link 
+                      to="/analyze" 
+                      search={{ text: `Community Proposal: ${p.title}\nDistrict: ${p.district}\nAmount: ${p.recovered_amount} Cr\nStatus: ${p.status}` }}
+                      className="px-6 py-3 bg-white border-2 border-navy-deep/10 text-navy-deep rounded-xl font-black text-xs hover:border-saffron transition-all"
+                    >
+                      ANALYSE RISK
+                    </Link>
+                    <button 
+                      onClick={() => handleVote(p.id)}
+                      disabled={p.status !== "VOTING" || voted.includes(p.id)}
+                      className={`px-8 py-3 rounded-xl font-black text-xs transition-all flex items-center gap-2 ${p.status === "VOTING" ? (voted.includes(p.id) ? "bg-success text-white" : "bg-saffron text-white shadow-lg shadow-saffron/20 hover:scale-105") : "bg-muted text-muted-foreground cursor-not-allowed"}`}
+                    >
+                      {voted.includes(p.id) ? <><CheckCircle2 className="w-4 h-4" /> VOTED</> : (p.status === "VOTING" ? "VOTE FOR RECOVERY" : "PROPOSAL CLOSED")}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -132,43 +163,48 @@ function Community() {
         </section>
 
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-card w-full max-w-lg rounded-2xl shadow-elevated overflow-hidden animate-in zoom-in-95 duration-200">
-              <div className="p-6 border-b flex items-center justify-between bg-navy-deep text-white">
-                <h2 className="font-black text-xl">New Recovery Proposal</h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full"><X className="w-6 h-6" /></button>
+          <div className="fixed inset-0 bg-navy-deep/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div className="bg-card w-full max-w-lg rounded-3xl shadow-elevated overflow-hidden animate-in zoom-in-95 duration-200 border-2 border-navy-deep/10">
+              <div className="p-8 border-b flex items-center justify-between bg-white">
+                <div>
+                   <h2 className="font-black text-2xl text-navy-deep tracking-tighter leading-none">New Recovery Proposal</h2>
+                   <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-2">Submit fund reallocation plan</p>
+                </div>
+                <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-muted rounded-full transition-colors"><X className="w-6 h-6 text-navy-deep" /></button>
               </div>
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleSubmit} className="p-8 space-y-6">
                 {submitted ? (
-                  <div className="py-12 text-center space-y-4">
-                    <div className="w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center mx-auto">
+                  <div className="py-12 text-center space-y-6">
+                    <div className="w-20 h-20 bg-success/10 text-success rounded-3xl flex items-center justify-center mx-auto shadow-lg rotate-12">
                       <CheckCircle2 className="w-10 h-10" />
                     </div>
-                    <h3 className="font-bold text-xl">Proposal Submitted!</h3>
-                    <p className="text-muted-foreground text-sm">Your proposal is being reviewed for legal validity.</p>
+                    <div>
+                       <h3 className="font-black text-2xl text-navy-deep">Proposal Live!</h3>
+                       <p className="text-muted-foreground font-medium text-sm mt-2">Your proposal is now visible to {MOCK_PROPOSALS[0].votes}+ citizens for voting.</p>
+                    </div>
                   </div>
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <label className="text-xs font-black uppercase text-muted-foreground">Proposal Title</label>
-                      <input required placeholder="e.g. Solar Power for District Hospital" className="w-full p-3 bg-muted rounded-xl outline-none focus:ring-2 focus:ring-saffron" />
+                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Infrastructure Goal</label>
+                      <input required placeholder="e.g. Smart School Conversion" className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-xs font-black uppercase text-muted-foreground">Target District</label>
-                        <input required placeholder="District Name" className="w-full p-3 bg-muted rounded-xl outline-none focus:ring-2 focus:ring-saffron" />
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Target District</label>
+                        <input required placeholder="District" className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-xs font-black uppercase text-muted-foreground">Estimated Cost (Cr)</label>
-                        <input required type="number" step="0.1" placeholder="Amount in Crores" className="w-full p-3 bg-muted rounded-xl outline-none focus:ring-2 focus:ring-saffron" />
+                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Budget (₹ Cr)</label>
+                        <input required type="number" step="0.1" placeholder="Cr" className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold" />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-black uppercase text-muted-foreground">Detailed Description</label>
-                      <textarea required rows={4} placeholder="How will this fund be used?" className="w-full p-3 bg-muted rounded-xl outline-none focus:ring-2 focus:ring-saffron resize-none" />
+                      <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Impact Description</label>
+                      <textarea required rows={4} placeholder="Describe how this recovered fund will serve the community..." className="w-full p-4 bg-muted/50 border-2 border-transparent focus:border-saffron focus:bg-white rounded-2xl outline-none transition-all font-bold resize-none" />
                     </div>
-                    <button type="submit" className="w-full bg-saffron text-white py-4 rounded-xl font-black flex items-center justify-center gap-2 shadow-lg shadow-saffron/20 hover:bg-saffron/90 transition-all">
-                      SUBMIT FOR VOTING <Send className="w-4 h-4" />
+                    <button type="submit" className="w-full bg-saffron text-white py-5 rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-saffron/20 hover:scale-[1.01] transition-transform active:scale-95">
+                      PUBLISH PROPOSAL <Send className="w-4 h-4" />
                     </button>
                   </>
                 )}
