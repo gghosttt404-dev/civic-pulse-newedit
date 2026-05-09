@@ -138,10 +138,18 @@ function RTIHub() {
                 </ul>
               </div>
               <div className="mt-8 flex gap-2">
-                <button className="flex-1 bg-navy-deep text-white text-xs font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-saffron transition-all active:scale-95">
+                <button 
+                  onClick={() => {
+                    window.location.search = `?project=${encodeURIComponent(t.title)}`;
+                  }}
+                  className="flex-1 bg-navy-deep text-white text-xs font-black py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-saffron transition-all active:scale-95"
+                >
                   <FileText className="w-4 h-4" /> DRAFT NOW
                 </button>
-                <button className="bg-muted text-muted-foreground p-4 rounded-xl hover:text-navy-deep transition-all">
+                <button 
+                  onClick={() => window.print()}
+                  className="bg-muted text-muted-foreground p-4 rounded-xl hover:text-navy-deep transition-all"
+                >
                   <Download className="w-5 h-5" />
                 </button>
               </div>
