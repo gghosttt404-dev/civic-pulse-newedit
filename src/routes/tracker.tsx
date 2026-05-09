@@ -16,8 +16,13 @@ function Tracker() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const projects = await fetchGovtProjects();
-      setList(projects);
+      try {
+        const projects = await fetchGovtProjects();
+        setList(Array.isArray(projects) ? projects : []);
+      } catch (err) {
+        console.error("Failed to fetch projects:", err);
+        setList([]);
+      }
       setLoading(false);
     })();
   }, []);

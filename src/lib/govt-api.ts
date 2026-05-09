@@ -63,7 +63,10 @@ export const fetchGovtProjects = createServerFn("GET", async () => {
     const response = await fetch(url);
     const data = await response.json();
     
-    if (!data.records) return [];
+    if (!data || !data.records || !Array.isArray(data.records)) {
+      console.warn("Invalid govt data format:", data);
+      return [];
+    }
 
     return data.records.map((r: any, index: number) => {
       const sanctioned = parseFloat(r.COST_OF_WORKS_SANCTIONED_LAKHS) || 0;

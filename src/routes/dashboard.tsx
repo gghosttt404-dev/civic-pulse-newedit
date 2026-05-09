@@ -17,21 +17,27 @@ function Dashboard() {
 
   useEffect(() => {
     (async () => {
-      const projects = await fetchGovtProjects();
-      const ghostCount = projects.filter(p => p.ghost_risk).length;
-      const totalSanctioned = projects.reduce((sum, p) => sum + p.sanctioned_amount, 0);
-      
-      setStats({
-        ghosts: ghostCount,
-        rtis: 14,
-        schemes: 12,
-        value: totalSanctioned
-      });
-      setRecent(projects.slice(0, 5));
-      
-      if (profile?.state) {
-        const localAlerts = projects.filter(p => p.state === profile.state && p.ghost_risk);
-        setAlerts(localAlerts);
+      try {
+        const rawProjects = await fetchGovtProjects();
+        const projects = Array.isArray(rawProjects) ? rawProjects : [];
+        
+        const ghostCount = projects.filter(p => p.ghost_risk).length;
+        const totalSanctioned = projects.reduce((sum, p) => sum + p.sanctioned_amount, 0);
+        
+        setStats({
+          ghosts: ghostCount,
+          rtis: 14,
+          schemes: 12,
+          value: totalSanctioned
+        });
+        setRecent(projects.slice(0, 5));
+        
+        if (profile?.state) {
+          const localAlerts = projects.filter(p => p.state === profile.state && p.ghost_risk);
+          setAlerts(localAlerts);
+        }
+      } catch (err) {
+        console.error("Dashboard data load failed:", err);
       }
     })();
   }, [profile]);

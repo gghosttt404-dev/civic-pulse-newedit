@@ -27,8 +27,13 @@ function GhostMap() {
 
   useEffect(() => {
     (async () => {
-      const data = await fetchGovtProjects();
-      setProjects(data);
+      try {
+        const data = await fetchGovtProjects();
+        setProjects(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Failed to load projects:", err);
+        setProjects([]);
+      }
     })();
   }, []);
 
