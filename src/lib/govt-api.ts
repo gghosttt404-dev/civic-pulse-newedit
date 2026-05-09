@@ -54,18 +54,96 @@ const STATE_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "Puducherry": { lat: 11.9416, lng: 79.8083 },
 };
 
+const FALLBACK_PROJECTS: GovtProject[] = [
+  {
+    id: "fallback-1",
+    name: "Construction of Bridge over River Kosi",
+    state: "Bihar",
+    district: "Saharasa",
+    sanctioned_amount: 450.5,
+    fund_released: 410.2,
+    completion_pct: 35,
+    ghost_risk: true,
+    status: "GHOST_RISK",
+    lat: 25.8835,
+    lng: 86.6006
+  },
+  {
+    id: "fallback-2",
+    name: "Rural Road Link - Block II to NH-31",
+    state: "West Bengal",
+    district: "Malda",
+    sanctioned_amount: 120.8,
+    fund_released: 115.0,
+    completion_pct: 42,
+    ghost_risk: true,
+    status: "GHOST_RISK",
+    lat: 25.0108,
+    lng: 88.1411
+  },
+  {
+    id: "fallback-3",
+    name: "Smart School Building Phase I",
+    state: "Karnataka",
+    district: "Mysuru",
+    sanctioned_amount: 85.0,
+    fund_released: 40.0,
+    completion_pct: 45,
+    ghost_risk: false,
+    status: "ON_TRACK",
+    lat: 12.2958,
+    lng: 76.6394
+  },
+  {
+    id: "fallback-4",
+    name: "Primary Health Center Renovation",
+    state: "Rajasthan",
+    district: "Udaipur",
+    sanctioned_amount: 210.0,
+    fund_released: 180.0,
+    completion_pct: 65,
+    ghost_risk: false,
+    status: "DELAYED",
+    lat: 24.5854,
+    lng: 73.7125
+  },
+  {
+    id: "fallback-5",
+    name: "Rural Electrification Project",
+    state: "Uttar Pradesh",
+    district: "Varanasi",
+    sanctioned_amount: 320.0,
+    fund_released: 290.0,
+    completion_pct: 20,
+    ghost_risk: true,
+    status: "GHOST_RISK",
+    lat: 25.3176,
+    lng: 82.9739
+  }
+];
+
 export const fetchGovtProjects = createServerFn("GET", async () => {
   const apiKey = process.env.GOVT_API_KEY;
   const resourceId = "d4361151-6d41-43c7-98cd-9a6cd90b5ca4";
   const url = `https://api.data.gov.in/resource/${resourceId}?api-key=${apiKey}&format=json&limit=50`;
 
   try {
+    if (!apiKey || apiKey === "YOUR_API_KEY") {
+      console.warn("Govt API Key missing, using fallback data.");
+      return FALLBACK_PROJECTS;
+    }
+
     const response = await fetch(url);
+    if (!response.ok) {
+      console.warn("Govt API responded with error, using fallback.");
+      return FALLBACK_PROJECTS;
+    }
+
     const data = await response.json();
     
-    if (!data || !data.records || !Array.isArray(data.records)) {
-      console.warn("Invalid govt data format:", data);
-      return [];
+    if (!data || !data.records || !Array.isArray(data.records) || data.records.length === 0) {
+      console.warn("Invalid or empty govt data format, using fallback.");
+      return FALLBACK_PROJECTS;
     }
 
     return data.records.map((r: any, index: number) => {
@@ -81,7 +159,6 @@ export const fetchGovtProjects = createServerFn("GET", async () => {
       const isDelayed = completionPct < 80 && fundReleasedPct > 50;
 
       const stateCoords = STATE_COORDINATES[r.STATE_NAME] || { lat: 20.5937, lng: 78.9629 };
-      // Jitter coordinates slightly so they don't overlap perfectly
       const lat = stateCoords.lat + (Math.random() - 0.5) * 2;
       const lng = stateCoords.lng + (Math.random() - 0.5) * 2;
 
@@ -100,7 +177,7 @@ export const fetchGovtProjects = createServerFn("GET", async () => {
       } as GovtProject;
     });
   } catch (error) {
-    console.error("Error fetching govt projects:", error);
-    return [];
+    console.error("Error fetching govt projects, returning fallbacks:", error);
+    return FALLBACK_PROJECTS;
   }
 });
